@@ -83,7 +83,7 @@ def pipeline_2D_NST(style_img,
     # loss history
     loss_history = {name: {'weight':weight, 'values':[]} for name, weight in style_loss_types.items()}
     if need_content:
-        loss_history['content'] = {'weight': 1., 'values':[]}
+        loss_history['content'] = {'weight': content_weights[0], 'values':[]}
 
     if not silent:
         print()
