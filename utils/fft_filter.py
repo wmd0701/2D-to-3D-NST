@@ -31,7 +31,7 @@ def fft_filter_2D(input, freq_lower = None, freq_upper = None):
         pass1 = (freq1 <= freq_upper) * (freq1 >= freq_lower)
         pass2 = (freq2 <= freq_upper) * (freq2 >= freq_lower)
     
-    kernel = torch.outer(pass2, pass1)
+    kernel = torch.outer(pass2, pass1).to(input.device)
 
     fft_input = torch.fft.rfftn(input)
     
