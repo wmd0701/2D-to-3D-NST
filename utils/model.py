@@ -280,3 +280,107 @@ def get_models_2D_NST_OpsOnBNST(style_img,
         print()
         
     return model_style, style_losses
+
+def get_models_3D_NST(  style_img,
+                        style_layers = style_layers_default,
+                        style_loss_types = {'gram':1},
+                        masking = False,
+                        model_pooling = 'max',
+                        mask_pooling = 'avg',
+                        ):
+    """
+    Get style model, mask model, and style loss layers for 3D NST. Largest difference to get_models_2D_NST is
+    that this function does not require content image and hence returns no content model / content loss layers.
+    Arguments:
+        style_img: style image tensor of shape (1,3,M,N)
+        style_layers: list of style layer names, such as ['conv1_1', 'conv3_1']
+        style_loss_types: dictionary with style loss name as key and its weight as value, e.g. {'gram':1}
+        masking: whether to apply masking or not, boolean
+        model_pooling: type of pooling layer in style/content model, can be 'avg' or 'max'
+        mask_pooling: type of pooling layer in mask model, can be 'avg' or 'max'
+    Returns:
+        model_style: style model
+        model_mask: mask model
+        style_losses: list of style loss layers
+    """
+
+    # model for masks
+    model_mask = torch.nn.Sequential()
+    mask_layers = []
+    first_layer = GetMask()
+    model_mask.add_module('mask_1', first_layer)
+    mask_layers.append(first_layer)
+    for i in range(4):
+        if mask_pooling == 'max':
+            layer = torch.nn.MaxPool2d(kernel_size=2, stride=2)
+        elif mask_pooling =='avg':
+            layer = torch.nn.AvgPool2d(kernel_size=2, stride=2)
+        else:
+            raise RuntimeError("Pooling must be either max or avg! But now it is:" + mask_pooling)
+        
+        # add pooling layer
+        model_mask.add_module(mask_pooling + '_pooling_' + str(i+1), layer)
+
+        # add mask layer
+        get_input_layer = GetMask()
+        model_mask.add_module('mask_' + str(i+2), get_input_layer)
+        mask_layers.append(get_input_layer)
+    
+    # model for style
+    style_losses = []
+    style_layers   = [x.replace('conv', 'relu') for  x in style_layers]
+    model_style   = torch.nn.Sequential()
+
+    conv_i = 1
+    relu_i = 1
+    pool_i = 1    # pool_i is important since conv blocks are separated by pooling layers
+    bn_i = 1
+    
+    for layer in cnn.children():
+        if isinstance(layer, torch.nn.Conv2d):
+            name = 'conv{}_{}'.format(pool_i, conv_i)
+            conv_i += 1
+        elif isinstance(layer, torch.nn.ReLU):
+            name = 'relu{}_{}'.format(pool_i, relu_i)
+            layer = torch.nn.ReLU(inplace=False) # in-place ReLU doesnt work well
+            relu_i += 1
+        elif isinstance(layer, torch.nn.BatchNorm2d):
+            name = 'bn{}_{}'.format(pool_i, bn_i)
+            bn_i += 1
+        elif isinstance(layer, torch.nn.MaxPool2d):
+            name = 'pool{}'.format(pool_i)
+            if model_pooling == 'max':
+                layer = torch.nn.MaxPool2d(kernel_size=2, stride=2)
+            elif model_pooling == 'avg':
+                layer = torch.nn.AvgPool2d(kernel_size=2, stride=2)
+            else:
+                raise RuntimeError("Pooling must be either max or avg! But now it is:" + model_pooling)
+            pool_i += 1
+            conv_i = 1
+            relu_i = 1
+            bn_i = 1  
+        else:
+            raise RuntimeError('Unrecognized layer: {}'.format(layer.__class__.__name__))
+
+        model_style.add_module(name, layer)
+
+        # add style layers
+        if name in style_layers:
+            target_style = model_style(style_img).detach()
+            style_loss = StyleLoss(target_style, style_loss_types, mask_layers[pool_i-1], False)
+            model_style.add_module("style_loss_{}_{}".format(pool_i, relu_i-1), style_loss)
+            style_losses.append(style_loss)
+
+    # trim off the layers after the last style loss layer
+    for i in range(len(model_style) - 1, -1, -1):
+        if isinstance(model_style[i], StyleLoss): # or isinstance(model_content[i], ContentLoss):
+            break
+        
+    model_style   = model_style  [:(i + 1)]
+    
+    # set self.masking to True if masking. This has to be done afterwards, otherwise model build 
+    # may fail because style image and mask image are not necessarily of same size
+    for l in style_losses:
+        l.masking = masking
+    
+    return model_style, model_mask, style_losses
