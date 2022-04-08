@@ -134,7 +134,7 @@ def grid_plot(mesh,
               sil_shader = True,
               rgb = False):
     """
-    Get multiple renderings of mesh from different view points, and renderings are plotted in grid
+    Get multiple renderings of mesh from different view points, and plot renderings in grid
     Arguments:
         mesh: 3D mesh object to be rendered
         perspective_camera: whether to use perspective camera or orthographic camera, boolean
@@ -175,7 +175,7 @@ def single_plot(mesh,
                 sil_shader = True,
                 rgb = False):
     """
-    Get a single rendering of mesh from some view point
+    Plot a single rendering of mesh from some view point
     Arguments:
         mesh: 3D mesh object to be rendered
         perspective_camera: whether to use perspective camera or orthographic camera, boolean
@@ -187,7 +187,7 @@ def single_plot(mesh,
         sil_shader: whether to use silhouette renderer or soft phong renderer, boolean
         rgb: whether to plot RGB rendering or silhouette, boolean
     """
-    
+
     R, T = look_at_view_transform(dist=camera_dist, elev=elev, azim=azim)
     camera = FoVPerspectiveCameras(device=device, R=R, T=T) if perspective_camera else FoVOrthographicCameras(device=device, R=R, T=T)   
 
