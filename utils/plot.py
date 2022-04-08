@@ -1,3 +1,4 @@
+import torch
 import matplotlib.pyplot as plt
 
 # Plot losses
@@ -51,8 +52,8 @@ def plot_statistics(statistics, config_idx = None, style_layer = 'conv1_1', save
         for k, l in statistics.items():
             ax.plot(l[style_layer], label = "config" + str(k))
     else:
-        k = list(statistics.keys())[config_idx]
-        l = list(statistics.values())[config_idx]
+        k = config_idx
+        l = statistics[k]
         ax.plot(l[style_layer], label = "config" + str(k))
 
     ax.legend(fontsize="16")
@@ -78,8 +79,8 @@ def plot_statistics_difference(statistics, config_idx1=0, config_idx2=1, style_l
     fig = plt.figure(figsize=(13, 5))
     ax = fig.gca()
 
-    value1 = list(statistics.values())[config_idx1]
-    value2 = list(statistics.values())[config_idx2]
+    value1 = statistics[config_idx1]
+    value2 = statistics[config_idx2]
 
     eps = 1e-3
     percentage = (value1[style_layer] - value2[style_layer]) / (value1[style_layer].abs() + value2[style_layer].abs() + eps)
@@ -153,3 +154,40 @@ def flexible_plot(data_list, config_idx = None, save_plot=False, x_title = 'chan
     ax.set_title(title, fontsize="16")
     if save_plot:
         plt.savefig("flexible_plot.png")
+
+def plot_spectrum(statistics, config_idx = None, style_layer = 'conv1_1', save_plot=False, title='std'):
+    """
+    Compute, plot and compare spectrums of statistics
+    Arguments:
+        statistics: dictionary of statistics
+        config_idx: plot statistics only for this configuration
+        style_layer: statistics from which layer
+        save_plot: whether save plot as png image, boolean
+        title: title of plot
+    """
+
+    # compute spectrum frequencies    
+    N = len(statistics[0][style_layer])
+    xf = torch.fft.rfftfreq(N)
+    
+    fig = plt.figure(figsize=(13, 5))
+    ax = fig.gca()
+
+    if config_idx is None:
+        for k, l in statistics.items():
+            # compute spectrum amplitude
+            yf = torch.abs(torch.fft.rfft(l[style_layer]))
+            ax.plot(xf, yf, label = "config" + str(k))
+    else:
+        k = config_idx
+        l = statistics[k]
+        # compute spectrum amplitude
+        yf = torch.abs(torch.fft.rfft(l[style_layer]))
+        ax.plot(xf, yf, label = "config" + str(k))
+
+    ax.legend(fontsize="16")
+    ax.set_xlabel("frequency", fontsize="16")
+    ax.set_ylabel("amplitude", fontsize="16")
+    ax.set_title(style_layer + ' ' + title + " spectrum", fontsize="16")
+    if save_plot:
+        plt.savefig("spectrum_plot.png")
