@@ -17,13 +17,14 @@ cnn_norm_back_std= [1/0.229, 1/0.224, 1/0.225]
 cnn_denormalizer = transforms.Normalize(mean=cnn_norm_back_mean, std=cnn_norm_back_std)
 
 # load image, pre-process it and transform it into tensor
-def image_loader(image_name, imsize = None, tiling = (1,1), freq_lower = None, freq_upper = None, grayscale = False, mask = False):
+def image_loader(image_name, imsize = None, tiling = (1,1), freq_lower = None, fft_level = 0, freq_upper = None, grayscale = False, mask = False):
     """
     Load image, pre-process it and transform it into tensor
     Arguments:
         image_name: path to image
         imsize: resize image, can be None, integer or 2-tuple of integers
         tiling: tiling image, can be integer or 2-tuple of integers
+        fft_level: apply FFT filter on which feature level, 0 means image level
         freq_lower: FFT high pass filter threshold
         freq_upper: FFT low pass filter threshold
         grayscale: whether to transform RGB image to grayscale and later duplicate over RGB channels, boolean
@@ -55,7 +56,7 @@ def image_loader(image_name, imsize = None, tiling = (1,1), freq_lower = None, f
     image = loader_help(image)
 
     # apply FFT filter
-    image = fft_filter_2D(image, freq_lower = freq_lower, freq_upper = freq_upper)
+    image = fft_filter_2D(image, freq_lower = freq_lower, freq_upper = freq_upper) if fft_level==0 else image
     
     # duplicate grayscale for RGB channels
     if image.shape[0] == 1 and not mask:
