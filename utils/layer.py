@@ -216,7 +216,7 @@ class StyleLossOpsOnBNST(torch.nn.Module):
     def __init__(self, target_style, indices = None,
                 mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
                 std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None):
-        super(StyleLoss, self).__init__()
+        super(StyleLossOpsOnBNST, self).__init__()
 
         # b: batch size, which should be 1
         # c: number of channels
