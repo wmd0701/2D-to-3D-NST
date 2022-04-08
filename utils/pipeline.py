@@ -1,6 +1,6 @@
 
 import torch
-from utils.model import get_models_losses_masks_2D_NST
+from utils.model import get_models_2D_NST, get_models_2D_NST_OpsOnBNST
 from utils.NoStdStreams import NoStdStreams
 
 style_layers_default  = ['conv1_1', 'conv2_1', 'conv3_1', 'conv4_1']
@@ -68,19 +68,19 @@ def pipeline_2D_NST(style_img,
         raise RuntimeError("Input image " + str(input_img.shape[-2:]) + " and mask image " + str(mask_img.shape[-2:]) + " not of same size!")
 
     # get style and content models        
-    model_style, model_content, model_mask, style_losses, content_losses = get_models_losses_masks_2D_NST(  style_img,
-                                                                                                            content_img,
-                                                                                                            style_layers = style_layers,
-                                                                                                            content_layers = content_layers,
-                                                                                                            style_loss_types = style_loss_types,
-                                                                                                            need_content = need_content,
-                                                                                                            masking = masking,
-                                                                                                            model_pooling = model_pooling,
-                                                                                                            mask_pooling = mask_pooling,
-                                                                                                            silent = silent,
-                                                                                                            fft_level = fft_level,
-                                                                                                            freq_lower = freq_lower,
-                                                                                                            freq_upper = freq_upper)
+    model_style, model_content, model_mask, style_losses, content_losses = get_models_2D_NST(   style_img,
+                                                                                                content_img,
+                                                                                                style_layers = style_layers,
+                                                                                                content_layers = content_layers,
+                                                                                                style_loss_types = style_loss_types,
+                                                                                                need_content = need_content,
+                                                                                                masking = masking,
+                                                                                                model_pooling = model_pooling,
+                                                                                                mask_pooling = mask_pooling,
+                                                                                                silent = silent,
+                                                                                                fft_level = fft_level,
+                                                                                                freq_lower = freq_lower,
+                                                                                                freq_upper = freq_upper)
     
     # optimize only the input image and not the model parameters, so set all the requires_grad fields accordingly
     input_img.requires_grad_(True)
@@ -165,3 +165,112 @@ def pipeline_2D_NST(style_img,
         # input_img.clamp_(0, 1)
 
     return input_img, loss_history, style_losses
+
+def pipeline_2D_NST_OpsOnBNST(  style_img,
+                                input_img, 
+                                n_iters = 200,
+                                style_weights = style_weights_default,
+                                style_layers = style_layers_default, 
+                                learning_rate = 1,
+                                model_pooling = 'max',
+                                silent = True,
+                                indices = None,
+                                mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
+                                std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None):
+    """
+    Pipleline for running 2D neural style transfer with detailed operations on batch normalization statistics
+    Arguments:
+        style_img: style image tensor of shape (1,3,M,N)
+        input_img: input image tensor, whose reshape depends on whether to consider content loss and types of style losses
+        n_iters: number of iterations
+        style_weights: list of weights attached to each style layer
+        style_layers: list of style layer names, e.g. ['conv1_1', 'conv3_1']
+        learning_rate: learning rate for LBFGS optimizer
+        model_pooling: type of pooling layer in style/content model, can be 'max' or 'avg'
+        silent: whether to print less to console, boolean
+        indices: a subset of channels where BNST loss is computed
+        *coef and *bias: params for affine transformation, e.g. x --> x * x_coef + x_bias
+        *freq_lower: FFT high pass filter threshold
+        *freq_upper: FFT low pass filter threshold
+    Returns:
+        input_img: tensor for stylized input image
+        mean_loss_history: list stores BN mean loss
+        std_loss_history: list stores BN std loss
+        style_losses: list of style loss layers
+
+    """
+
+    if not silent:
+        print('Building the style transfer model..')
+        print()
+
+
+    # get style and content models        
+    model_style, style_losses = get_models_2D_NST_OpsOnBNST(style_img,
+                                                            style_layers = style_layers,
+                                                            model_pooling = model_pooling,
+                                                            silent = silent,
+                                                            indices = indices,
+                                                            mean_coef = mean_coef, mean_bias = mean_bias, mean_freq_lower=mean_freq_lower, mean_freq_upper=mean_freq_upper,
+                                                            std_coef = std_coef, std_bias = std_bias, std_freq_lower=std_freq_lower, std_freq_upper=std_freq_upper
+                                                            )
+    
+    # optimize only the input image and not the model parameters, so set all the requires_grad fields accordingly
+    input_img.requires_grad_(True)
+    model_style.requires_grad_(False)
+    
+    # optimizer
+    optimizer = torch.optim.LBFGS([input_img], lr=learning_rate) #LBFGS([input_img], lr=lr)
+
+    # loss history
+    mean_loss_history = []
+    std_loss_history = []
+
+    if not silent:
+        print()
+        print('Optimizing..')
+    run = [0]
+    while run[0] <= n_iters:
+
+        def closure():
+            # with torch.no_grad():
+                # input_img.clamp_(eps, one)
+            
+            optimizer.zero_grad()
+
+            # forward pass
+            model_style(input_img)
+            
+            # loss in current optimization iteration
+            mean_loss = 0
+            std_loss = 0
+
+            # compute style loss
+            for sl, sl_weight in zip(style_losses, style_weights):
+                mean_loss += sl.mean_loss * sl_weight
+                std_loss += sl.std_loss * sl_weight
+
+            # add current iter loss to history
+            mean_loss_history.append(mean_loss.detach().cpu())
+            std_loss_history.append(std_loss.detach().cpu())
+
+            # backward
+            mean_and_std_loss = mean_loss + std_loss
+            mean_and_std_loss.backward()
+
+            run[0] += 1
+            if run[0] % 20 == 0:
+                print("run {}:".format(run))
+                if not silent:
+                    print('mean loss : {:.4f}'.format(mean_loss.item()) + '   std loss : {:.4f}'.format(std_loss.item()))
+                    print()
+
+            return mean_and_std_loss
+
+        optimizer.step(closure)
+
+
+    # with torch.no_grad():
+        # input_img.clamp_(0, 1)
+
+    return input_img, mean_loss_history, std_loss_history, style_losses

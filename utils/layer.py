@@ -59,7 +59,7 @@ class StyleLoss(torch.nn.Module):
     def __init__(self, target_style, style_loss_types, mask_layer, masking = False, fft_level = 0, freq_lower = None, freq_upper = None):
         """
         Arguments:
-            target_style: style feature map tensor of shape (c,h,w)
+            target_style: style feature map tensor of shape (b,c,h,w)
             style_loss_types: a dictionary with style loss name as key and its weight as value
             mask_layer: an instance of GetMask layer
             masking: whether to apply masking or not, boolean
@@ -202,6 +202,63 @@ class StyleLoss(torch.nn.Module):
                 p = torch.tensor([0.]).to(device) if k_name != 'rbf' else 1/torch.tensor([mean_square_distance(c, self.transposed_style, tranposed_input)]).to(device)
                 self.losses[k_name] = kernel_mean(kernels[k_name][c], p, self.transposed_style, tranposed_input)/(c**2)
         
+    
+        return input
+
+class StyleLossOpsOnBNST(torch.nn.Module):  
+    """
+    A simplified style loss layer which only computes style loss based on batch normalization statistics, 
+    and allow more detailed operations on those statistics, such as affine transformation and FFT filter
+
+    Especially, affine transformation means: x --> x * x_coef + x_bias
+    """
+
+    def __init__(self, target_style, indices = None,
+                mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
+                std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None):
+        super(StyleLoss, self).__init__()
+
+        # b: batch size, which should be 1
+        # c: number of channels
+        # h: height
+        # w: width
+        b, c, h, w = target_style.size()
+        # print("c:", "{:3d}".format(c), "  h:", "{:3d}".format(h), "  w:", "{:3d}".format(w))
+        style_feature = target_style.view(c, h * w)
         
+        self.target_mean, self.target_std = BN_mean_and_std(style_feature)
+        self.target_mean.detach_()
+        self.target_std.detach_()
+
+        # apply 1D FFT filter
+        self.target_mean = fft_filter_1D(self.target_mean, freq_lower = mean_freq_lower, freq_upper = mean_freq_upper)
+        self.target_std = fft_filter_1D(self.target_std, freq_lower = std_freq_lower, freq_upper = std_freq_upper)
         
+        # affine transformation
+        self.target_mean = self.target_mean * mean_coef + mean_bias
+        self.target_std  = self.target_std  * std_coef  + std_bias
+
+        # indices
+        self.indices = indices
+
+    ####################################### forward #######################################
+    def forward(self, input):
+        b, c, h, w = input.size()     # b = 1 since there is only one image in batch
+        
+        input_feature = input.view(c, h * w)
+ 
+        self.input_mean, self.input_std = BN_mean_and_std(input_feature)
+        
+        # consider statistics from all channels
+        if self.indices is None:
+            mean_loss = torch.nn.functional.mse_loss(self.input_mean, self.target_mean)
+            std_loss  = torch.nn.functional.mse_loss(self.input_std, self.target_std)
+        # consider statistics from a subset of channels
+        else:
+            mean_loss = torch.nn.functional.mse_loss(self.input_mean[self.indices], self.target_mean[self.indices])
+            std_loss  = torch.nn.functional.mse_loss(self.input_std[self.indices], self.target_std[self.indices])
+        
+        self.mean_loss = mean_loss  # * self.mean_weight
+        self.std_loss  = std_loss   # * self.std_weight
+
         return input

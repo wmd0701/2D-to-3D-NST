@@ -124,3 +124,32 @@ def plot_gram_matrix(grams, global_normalizing = False):
             plt.title(k2 + ", mean={:.2f}, max={:.2f}".format(l2.mean(), l2.max()))
             i += 1
         plt.suptitle("config" + str(k))
+
+def flexible_plot(data_list, config_idx = None, save_plot=False, x_title = 'channel', y_title = 'std', title='no title'):
+    """
+    A more flexible plot function, mainly used when controlling and comparing BN statistics
+    Arguments:
+        data_list: list of data
+        config_idx: plot only data of this config
+        save_plot: whether save plot as png image, boolean
+        x_title: label on x axis
+        y_title: label on y axis
+        title: title of plot
+    """
+    fig = plt.figure(figsize=(13, 5))
+    ax = fig.gca()
+
+    if config_idx is None:
+        i = 0
+        for data in data_list:
+            ax.plot(data, label = "config" + str(i))
+            i += 1
+    else:
+        ax.plot(data[config_idx], label = "config" + str(config_idx))
+
+    ax.legend(fontsize="16")
+    ax.set_xlabel(x_title, fontsize="16")
+    ax.set_ylabel(y_title, fontsize="16")
+    ax.set_title(title, fontsize="16")
+    if save_plot:
+        plt.savefig("flexible_plot.png")
