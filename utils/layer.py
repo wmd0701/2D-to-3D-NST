@@ -247,16 +247,16 @@ class StyleLossOpsOnBNST(torch.nn.Module):
         
         input_feature = input.view(c, h * w)
  
-        self.input_mean, self.input_std = BN_mean_and_std(input_feature)
+        input_mean, input_std = BN_mean_and_std(input_feature)
         
         # consider statistics from all channels
         if self.indices is None:
-            mean_loss = torch.nn.functional.mse_loss(self.input_mean, self.target_mean)
-            std_loss  = torch.nn.functional.mse_loss(self.input_std, self.target_std)
+            mean_loss = torch.nn.functional.mse_loss(input_mean, self.target_mean)
+            std_loss  = torch.nn.functional.mse_loss(input_std, self.target_std)
         # consider statistics from a subset of channels
         else:
-            mean_loss = torch.nn.functional.mse_loss(self.input_mean[self.indices], self.target_mean[self.indices])
-            std_loss  = torch.nn.functional.mse_loss(self.input_std[self.indices], self.target_std[self.indices])
+            mean_loss = torch.nn.functional.mse_loss(input_mean[self.indices], self.target_mean[self.indices])
+            std_loss  = torch.nn.functional.mse_loss(input_std[self.indices], self.target_std[self.indices])
         
         self.mean_loss = mean_loss  # * self.mean_weight
         self.std_loss  = std_loss   # * self.std_weight
