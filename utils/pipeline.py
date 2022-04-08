@@ -24,7 +24,10 @@ def pipeline_2D_NST(style_img,
                     masking = False,
                     model_pooling = 'max',
                     mask_pooling = 'avg',
-                    silent = True):
+                    silent = True,
+                    fft_level = 0,
+                    freq_lower = None,
+                    freq_upper = None):
     """
     Pipleline for running 2D neural style transfer
     Arguments:
@@ -44,9 +47,13 @@ def pipeline_2D_NST(style_img,
         model_pooling: type of pooling layer in style/content model, can be 'max' or 'avg'
         mask_pooling: type of pooling layer in mask model, can be 'max' or 'avg'
         silent: whether to print less to console, boolean
+        fft_level: apply FFT filter on which feature level
+        freq_lower: FFT high pass filter threshold
+        freq_upper: FFT low pass filter threshold
     Returns:
         input_img: tensor for stylized input image
         loss_history: dictionary stores weight and value of each loss
+        style_losses: list of style loss layers
 
     """
 
@@ -70,9 +77,12 @@ def pipeline_2D_NST(style_img,
                                                                                                             masking = masking,
                                                                                                             model_pooling = model_pooling,
                                                                                                             mask_pooling = mask_pooling,
-                                                                                                            silent = silent)
+                                                                                                            silent = silent,
+                                                                                                            fft_level = fft_level,
+                                                                                                            freq_lower = freq_lower,
+                                                                                                            freq_upper = freq_upper)
     
-    # optimize the input and not the model parameters, so update all the requires_grad fields accordingly
+    # optimize only the input image and not the model parameters, so set all the requires_grad fields accordingly
     input_img.requires_grad_(True)
     model_style.requires_grad_(False)
     model_content.requires_grad_(False)
@@ -154,4 +164,4 @@ def pipeline_2D_NST(style_img,
     # with torch.no_grad():
         # input_img.clamp_(0, 1)
 
-    return input_img, loss_history
+    return input_img, loss_history, style_losses

@@ -1,4 +1,5 @@
 import torch
+from utils.fft_filter import fft_filter_2D, fft_filter_1D
 from utils.style_loss import gram_matrix, BN_mean_and_std, histogram_loss, kernels, kernel_mean, mean_square_distance
 
 # GPU
@@ -55,13 +56,16 @@ class StyleLoss(torch.nn.Module):
     'rbf': style loss based on rbf kernel
     """
 
-    def __init__(self, target_style, style_loss_types, mask_layer, masking = False):
+    def __init__(self, target_style, style_loss_types, mask_layer, masking = False, fft_level = 0, freq_lower = None, freq_upper = None):
         """
         Arguments:
             target_style: style feature map tensor of shape (c,h,w)
             style_loss_types: a dictionary with style loss name as key and its weight as value
             mask_layer: an instance of GetMask layer
             masking: whether to apply masking or not, boolean
+            fft_level: apply FFT filter on which feature level
+            freq_lower: FFT high pass filter threshold
+            freq_upper: FFT low pass filter threshold
         """
         super(StyleLoss, self).__init__()
 
@@ -74,8 +78,18 @@ class StyleLoss(torch.nn.Module):
         # h: height
         # w: width
         b, c, h, w = target_style.size()
-        print("c:", "{:3d}".format(c), "  h:", "{:3d}".format(h), "  w:", "{:3d}".format(w))
+        # print("c:", "{:3d}".format(c), "  h:", "{:3d}".format(h), "  w:", "{:3d}".format(w))
+        
+        # FFT filter on level 1 feature
+        if fft_level == 1:
+            target_style = fft_filter_2D(target_style[0], freq_lower = freq_lower, freq_upper = freq_upper).unsqueeze(0)
+        
+        # flattened view of style feature
         style_feature = target_style.view(c, h * w)
+        
+        # FFT filter on level 2 feature
+        if fft_level == 2:
+            style_feature = fft_filter_2D(style_feature, freq_lower = freq_lower, freq_upper = freq_upper)
         
         self.use_gram   = 'gram'   in style_loss_types
         self.use_bnst   = 'bnst'   in style_loss_types
@@ -86,12 +100,21 @@ class StyleLoss(torch.nn.Module):
         # gram matrix
         if self.use_gram:
             self.target_gram_matrix = gram_matrix(style_feature).detach()
+
+            # FFT filter on level 3 feature
+            if fft_level == 3:
+                self.target_gram_matrix = fft_filter_2D(self.target_gram_matrix, freq_lower = freq_lower, freq_upper = freq_upper)
         
         # BN mean and std 
         if self.use_bnst:
             self.target_mean, self.target_std = BN_mean_and_std(style_feature)
             self.target_mean.detach_()
             self.target_std.detach_()
+
+            # FFT filter on level 4 feature
+            if fft_level == 4:
+                self.target_mean = fft_filter_1D(self.target_mean, freq_lower = freq_lower, freq_upper = freq_upper)
+                self.target_std = fft_filter_1D(self.target_std, freq_lower = freq_lower, freq_upper = freq_upper)
         
         # more statistics
         if self.use_morest:

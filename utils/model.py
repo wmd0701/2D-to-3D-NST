@@ -31,7 +31,10 @@ def get_models_losses_masks_2D_NST( style_img,
                                     masking = False,
                                     model_pooling = 'max',
                                     mask_pooling = 'avg',
-                                    silent = True):
+                                    silent = True,
+                                    fft_level = 0,
+                                    freq_lower = None,
+                                    freq_upper = None):
     """
     Get style model, content model, mask model, style loss layers and content loss layer for 2D neural style transfer
     Arguments:
@@ -45,6 +48,9 @@ def get_models_losses_masks_2D_NST( style_img,
         model_pooling: type of pooling layer in style/content model, can be 'avg' or 'max'
         mask_pooling: type of pooling layer in mask model, can be 'avg' or 'max'
         silent: whether to print less to console, boolean
+        fft_level: apply FFT filter on which feature level
+        freq_lower: FFT high pass filter threshold
+        freq_upper: FFT low pass filter threshold
     Returns:
         model_style: style model
         model_content: content model
@@ -131,7 +137,7 @@ def get_models_losses_masks_2D_NST( style_img,
         # add style layers
         if name in style_layers:
             target_style = model_style(style_img).detach()
-            style_loss = StyleLoss(target_style, style_loss_types, mask_layers[pool_i-1], False)
+            style_loss = StyleLoss(target_style, style_loss_types, mask_layers[pool_i-1], False, fft_level=fft_level, freq_lower=freq_lower, freq_upper=freq_upper)
             model_style.add_module("style_loss_{}_{}".format(pool_i, relu_i-1), style_loss)
             style_losses.append(style_loss)
         
@@ -156,7 +162,7 @@ def get_models_losses_masks_2D_NST( style_img,
     model_content = model_content[:(j + 1)]
     
     # set self.masking to True if masking. This has to be done afterwards, otherwise model build 
-    # may fail because style image and mask image are not necessary of same size
+    # may fail because style image and mask image are not necessarily of same size
     for l in style_losses:
         l.masking = masking
 
