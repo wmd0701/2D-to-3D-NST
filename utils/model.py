@@ -267,7 +267,7 @@ def get_models_2D_NST_OpsOnBNST(style_img,
 
     # trim off the layers after the last content and style losses
     for i in range(len(model_style) - 1, -1, -1):
-        if isinstance(model_style[i], StyleLoss): # or isinstance(model_content[i], ContentLoss):
+        if isinstance(model_style[i], StyleLossOpsOnBNST): # or isinstance(model_content[i], ContentLoss):
             break
         
     model_style   = model_style  [:(i + 1)]
