@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from pytorch3d.ops import sample_points_from_meshes
+try:
+    from pytorch3d.ops import sample_points_from_meshes
+except:
+    print("PyTorch3D not installed! Ignore this message if running 2D NST.")
 
 def plot_pointcloud(mesh, n_sample_points=5000, title=""):
     """

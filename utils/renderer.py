@@ -1,17 +1,20 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from pytorch3d.renderer import (
-    look_at_view_transform,
-    FoVPerspectiveCameras,
-    FoVOrthographicCameras,
-    RasterizationSettings, 
-    MeshRenderer, 
-    MeshRasterizer,  
-    SoftSilhouetteShader,
-    SoftPhongShader,
-    PointLights, 
-)
+try:
+    from pytorch3d.renderer import (
+        look_at_view_transform,
+        FoVPerspectiveCameras,
+        FoVOrthographicCameras,
+        RasterizationSettings, 
+        MeshRenderer, 
+        MeshRasterizer,  
+        SoftSilhouetteShader,
+        SoftPhongShader,
+        PointLights, 
+    )
+except:
+    print("PyTorch3D not installed! Ignore this message if running 2D NST.")
 from utils.poisson_disc_sampling import Poisson_disc_sampling
 from utils.plot import image_grid
 
