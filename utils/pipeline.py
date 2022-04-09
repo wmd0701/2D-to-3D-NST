@@ -11,7 +11,7 @@ from utils.renderer import get_renderer, get_lights, get_cameras, get_rgba_rende
 try:
     from pytorch3d.io import save_obj
     from pytorch3d.renderer import TexturesVertex
-except ModuleNotFoundError:
+except:
     print("PyTorch3D not installed! Ignore this message if running 2D NST.")
 
 
