@@ -258,7 +258,8 @@ class StyleLossOpsOnBNST(torch.nn.Module):
             mean_loss = torch.nn.functional.mse_loss(input_mean[self.indices], self.target_mean[self.indices])
             std_loss  = torch.nn.functional.mse_loss(input_std[self.indices], self.target_std[self.indices])
         
-        self.mean_loss = mean_loss  # * self.mean_weight
-        self.std_loss  = std_loss   # * self.std_weight
-
+        self.losses = {}
+        self.losses['mean_loss'] = mean_loss
+        self.losses['std_loss'] = std_loss
+        
         return input
