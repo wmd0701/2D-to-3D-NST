@@ -30,8 +30,8 @@ def image_loader(image_name, imsize = None, tiling = (1,1), freq_lower = None, f
         grayscale: whether to transform RGB image to grayscale and later duplicate over RGB channels, boolean
         mask: whether the loaded image is a mask, boolean
     Returns:
-        when mask is False: a batch of single image tensor, with shape (1,3,M,N)
-        when mask if True: a batch of single image tensor, with shape (1,M,N) 
+        when mask is False: a batch of single image tensor, with shape (1,3,h,w)
+        when mask if True: a batch of single image tensor, with shape (1,h,w) 
     
     """
     # load image
@@ -74,7 +74,7 @@ def image_unloader(tensor):
     """
     Transform tensor into PIL image.
     Arguments:
-        tensor: a batch of single image, with shape (1,3,M,N)
+        tensor: a batch of single image, with shape (1,3,h,w)
     Returns:
         PIL image
     """
@@ -96,7 +96,7 @@ def tensor_loader(tensor, mask = False):
     """
     if not mask:
         # len(shape)==3 --> rgb tensor, else grayscale tensor
-        # PyTorch3D generates RGB rendering tensor of shape (M,N,3), but networks require tensor of shape (1,3,M,N)
+        # PyTorch3D generates RGB rendering tensor of shape (h,w,3), but networks require tensor of shape (1,3,h,w)
         tensor = tensor.permute(2,0,1) if len(tensor.shape)==3 else tensor.repeat(3,1,1)
         tensor = cnn_normalizer(tensor)
 
