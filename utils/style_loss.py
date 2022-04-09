@@ -8,7 +8,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def gram_matrix(input):
     """
-    Compute gram matrix
+    Compute gram matrix.
     Arguments:
         input: flattened feature map of shape (c, h*w)
     Returns:
@@ -22,7 +22,7 @@ def gram_matrix(input):
 
 def BN_mean_and_std(input):
     """
-    Compute batch normalization means and stds
+    Compute batch normalization means and stds.
     Arguments:
         input: flattened feature map of shape (c, h*w)
     Returns:
@@ -35,7 +35,7 @@ def BN_mean_and_std(input):
 
 def histogram_loss(input_feature_normalized, style_feature_normalized_ordered, style_quantiles):    
     """
-    Compute histogram matching loss, which can improve stability for neural style transfer
+    Compute histogram matching loss, which can improve stability for neural style transfer.
     Arguments:
         input_feature_normalized: normalized input feature
         style_feature_normalized_order: normalized and ordered style feature
@@ -95,7 +95,7 @@ for formula in formulas:
 # Function to ensure contiguous gradient in backward pass. To be applied after KeOps reduction.
 class ContiguousBackward(torch.autograd.Function):
     """
-    Compel gradient to be contiguous in backward pass for KeOps functions
+    Compel gradient to be contiguous in backward pass for KeOps functions.
     Usage:
         tensor = ContiguousBackward().apply(tensor)
     """
@@ -109,7 +109,7 @@ class ContiguousBackward(torch.autograd.Function):
 # self-defined mean reduction of kernel
 def kernel_mean(kernel, p, x, y):
     """
-    Compute normalized reduction (sum) of kernel matrix
+    Compute normalized reduction (sum) of kernel matrix.
     Arguments:
         kernel: a kernel from the dictionary "kernels"
         p: constant argument in the kernel
@@ -129,7 +129,7 @@ def kernel_mean(kernel, p, x, y):
 # self-defined mean distance
 def mean_square_distance(c, x, y):
     """
-    Compute normalized reduction (sum) of kernel matrix for the kernel L2-distance
+    Compute normalized reduction (sum) of kernel matrix for the kernel L2-distance.
     Arguments:
         c: number of channels
         x: 1st kernel variable

@@ -2,15 +2,17 @@ import torch
 import matplotlib.pyplot as plt
 
 # Plot losses
-def plot_losses_2D_NST(losses, save_plot=True, loss_name = None, start = 0, end = None):
+def plot_loss(losses, save_plot=True, loss_name = None, start = 0, end = None):
     """
-    Plot loss vs iteration
+    Plot loss vs iteration.
     Arguments:
         losses: dictionary of losses
         save_plot: whether save loss plot as png image, boolean
         loss_name: name of style loss type which will be plotted while other types not
         start: plot start iteration
         end: plot end iteration 
+    Returns:
+        no return
     """
 
     if end is None:
@@ -36,13 +38,15 @@ def plot_losses_2D_NST(losses, save_plot=True, loss_name = None, start = 0, end 
 
 def plot_statistics(statistics, config_idx = None, style_layer = 'conv1_1', save_plot=False, title='mean'):
     """
-    Plot and compare statistics
+    Plot and compare statistics.
     Arguments:
         statistics: dictionary of statistics
         config_idx: plot statistics only for this configuration
         style_layer: statistics from which layer to plot
         save_plot: whether save plot as png image, boolean
         title: title of plot
+    Returns:
+        no return
     """
 
     fig = plt.figure(figsize=(13, 5))
@@ -65,7 +69,7 @@ def plot_statistics(statistics, config_idx = None, style_layer = 'conv1_1', save
 
 def plot_statistics_difference(statistics, config_idx1=0, config_idx2=1, style_layer='conv1_1', percent = True, save_plot=False, title='mean'):
     """
-    Plot difference between two statistics
+    Plot difference between two statistics.
     Arguments:
         statistics: dictionary of statistics
         config_idx1: index of 1st configuration
@@ -74,6 +78,8 @@ def plot_statistics_difference(statistics, config_idx1=0, config_idx2=1, style_l
         percent: compute absolute difference or relative difference, boolean
         save_plot: whether save plot as png image, boolean
         title: title of plot
+    Returns:
+        no return
     """
 
     fig = plt.figure(figsize=(13, 5))
@@ -100,10 +106,12 @@ def plot_statistics_difference(statistics, config_idx1=0, config_idx2=1, style_l
 
 def plot_gram_matrix(grams, global_normalizing = False):
     """
-    Plot gram matrix as grayscale image
+    Plot gram matrix as grayscale image.
     Arguments:
         grams: dictionary of gram matrices
         global_normalizing: whether gram matrices of different configs are normalized in same way, boolean
+    Returns:
+        no return
     """
     
     first_value = list(grams.values())[0]
@@ -128,7 +136,7 @@ def plot_gram_matrix(grams, global_normalizing = False):
 
 def flexible_plot(data_list, config_idx = None, save_plot=False, x_title = 'channel', y_title = 'std', title='no title'):
     """
-    A more flexible plot function, mainly used when controlling and comparing BN statistics
+    A more flexible plot function, mainly used when controlling and comparing BN statistics.
     Arguments:
         data_list: list of data
         config_idx: plot only data of this config
@@ -136,6 +144,8 @@ def flexible_plot(data_list, config_idx = None, save_plot=False, x_title = 'chan
         x_title: label on x axis
         y_title: label on y axis
         title: title of plot
+    Returns:
+        no return
     """
     fig = plt.figure(figsize=(13, 5))
     ax = fig.gca()
@@ -157,13 +167,15 @@ def flexible_plot(data_list, config_idx = None, save_plot=False, x_title = 'chan
 
 def plot_spectrum(statistics, config_idx = None, style_layer = 'conv1_1', save_plot=False, title='std'):
     """
-    Compute, plot and compare spectrums of statistics
+    Compute, plot and compare spectrums of statistics.
     Arguments:
         statistics: dictionary of statistics
         config_idx: plot statistics only for this configuration
         style_layer: statistics from which layer
         save_plot: whether save plot as png image, boolean
         title: title of plot
+    Returns:
+        no return
     """
 
     # compute spectrum frequencies    
@@ -236,3 +248,38 @@ def image_grid(
             ax.imshow(im[..., 3])
         if not show_axes:
             ax.set_axis_off()
+
+def visualize_prediction(new_rendering_rgba, org_rendering_rgba, rgb = False, title=''):
+    """
+    Plot the latest rendering vs original rendering. This function may be provoked many times
+    during optimization iterations.
+    Arguments:
+        new_rendering_rgba: new rendering tensor of shape (h,w,4)
+        org_rendering_rgba: old rendering tensor of shapr (h,w,4) 
+        rgb: whether to plot RGB channels or silhouette channel, boolean
+        titile: title of plot
+    Returns:
+        no return
+    """
+    if rgb:
+        plt.figure(figsize=(16, 4))    
+        plt.subplot(1, 4, 1)
+        plt.imshow(new_rendering_rgba[..., :3])
+        plt.title(title)
+        plt.subplot(1, 4, 2)
+        plt.imshow(new_rendering_rgba[..., 3])
+        plt.axis("off")
+        plt.subplot(1, 4, 3)
+        plt.imshow(org_rendering_rgba[..., :3])
+        plt.axis("off")
+        plt.subplot(1, 4, 4)
+        plt.imshow(org_rendering_rgba[..., 3])
+        plt.axis("off")
+    else:
+        plt.figure(figsize=(8, 4))
+        plt.subplot(1, 2, 1)
+        plt.imshow(new_rendering_rgba[..., 3])
+        plt.title(title)
+        plt.subplot(1, 2, 2)
+        plt.imshow(org_rendering_rgba[..., 3])
+        plt.axis("off")

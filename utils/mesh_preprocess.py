@@ -10,6 +10,8 @@ def plot_pointcloud(mesh, n_sample_points=5000, title=""):
         mesh: mesh obj read by PyTorch3D
         n_sample_points: number of point clouds to sample
         title: title of plot
+    Returns:
+        no return
     """
     points = sample_points_from_meshes(mesh, n_sample_points)
     x, y, z = points.clone().detach().cpu().squeeze().unbind(1)    

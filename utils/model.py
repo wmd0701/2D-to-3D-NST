@@ -1,3 +1,5 @@
+# Reference https://pytorch.org/tutorials/advanced/neural_style_tutorial.html
+
 import torch
 from copy import deepcopy
 import torchvision.models as models
@@ -8,9 +10,6 @@ content_layers_default = ['conv4_2']
 
 # GPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# download vgg
-cnn = models.vgg19(pretrained=True).features.to(device).eval()
 
 #####################################################################################
 # Accoring to the Gatys' raw implementation, the actual desired layers are not convs,
@@ -36,7 +35,7 @@ def get_models_2D_NST(  style_img,
                         freq_lower = None,
                         freq_upper = None):
     """
-    Get style model, content model, mask model, style loss layers and content loss layer for 2D neural style transfer
+    Get style model, content model, mask model, style loss layers and content loss layer for 2D neural style transfer.
     Arguments:
         style_img: style image tensor of shape (1,3,M,N)
         content_img: content image tensor of shape (1,3,M,N)
@@ -58,6 +57,9 @@ def get_models_2D_NST(  style_img,
         style_losses: list of style loss layers
         content_losses: list of content loss layers
     """
+
+    # download vgg
+    cnn = models.vgg19(pretrained=True).features.to(device).eval()
 
     # model for masks
     model_mask = torch.nn.Sequential()
@@ -95,7 +97,6 @@ def get_models_2D_NST(  style_img,
 
     #####################################################################
     # For the following part, the pytorch tutorial makes great mistakes.
-    # Reference https://pytorch.org/tutorials/advanced/neural_style_tutorial.html
     # Currently already corrected by Mengdi
     #####################################################################
     conv_i = 1
@@ -179,16 +180,18 @@ def get_models_2D_NST(  style_img,
     return model_style, model_content, model_mask, style_losses, content_losses
 
 
-def get_models_2D_NST_OpsOnBNST(style_img,
-                                style_layers = style_layers_default,
-                                model_pooling = 'max',
-                                silent = True,
-                                indices = None,
-                                mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
-                                std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None
-                                ):
+def get_models_OpsOnBNST(   style_img,
+                            style_layers = style_layers_default,
+                            model_pooling = 'max',
+                            silent = True,
+                            indices = None,
+                            mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
+                            std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None
+                            ):
     """
-    Get style model and style loss layers, specialized for StyleLossOpsOnBNST
+    Get style model and style loss layers, specialized for per-layer operations on batch normalization
+    statistics. Compared to get_models_2D_NST, this function does not require content image and mask image 
+    and hence returns no content model, mask model or content loss layers.
     Arguments:
         style_img: style image tensor of shape (1,3,M,N)
         style_layers: list of style layer names, such as ['conv1_1', 'conv3_1']
@@ -202,6 +205,9 @@ def get_models_2D_NST_OpsOnBNST(style_img,
         model_style: style model
         style_losses: list of style loss layers
     """
+
+    # download vgg
+    cnn = models.vgg19(pretrained=True).features.to(device).eval()
 
     # model for style
     style_losses = []
@@ -303,6 +309,9 @@ def get_models_3D_NST(  style_img,
         model_mask: mask model
         style_losses: list of style loss layers
     """
+
+    # download vgg
+    cnn = models.vgg19(pretrained=True).features.to(device).eval()
 
     # model for masks
     model_mask = torch.nn.Sequential()

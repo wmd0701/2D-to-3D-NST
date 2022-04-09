@@ -12,7 +12,7 @@ from pytorch3d.renderer import (
     SoftPhongShader,
     PointLights, 
 )
-from utils.Poisson_disc_sampling import Poisson_disc_sampling
+from utils.poisson_disc_sampling import Poisson_disc_sampling
 from utils.plot import image_grid
 
 # GPU
@@ -20,7 +20,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def get_renderer(rendering_size = 512, faces_per_pixel = 50, sil_shader = False):
     """
-    Get a differentiable renderer from PyTorch3D
+    Get a differentiable renderer from PyTorch3D.
     Arguments:
         rendering_size: image size of rendering, can be int or (int, int)
         faces_per_pixel: number of faces per pixel to track along depth axis
@@ -42,7 +42,7 @@ def get_renderer(rendering_size = 512, faces_per_pixel = 50, sil_shader = False)
 
 def get_lights(diffuse = 1.0, specular = 0.2, ambient = 0.5):
     """
-    Get lightings
+    Get lightings.
     Arguments:
         diffuse: amplitude of diffuse light
         specular: amplitude of specular light
@@ -59,7 +59,7 @@ def get_lights(diffuse = 1.0, specular = 0.2, ambient = 0.5):
 
 def get_cameras(sampling_cameras = True, elevs = torch.tensor([0]), azims = torch.tensor([0]), perspective_camera = True, camera_dist = 2.7):
     """
-    Get cameras at different positions
+    Get cameras at different positions.
     Arguments:
         sampling_cameras: whether to apply Poisson disc sampling for camera positions, boolean
         elevs: elevations in polar coordinate, ignored when sampling_cameras is True
@@ -87,7 +87,7 @@ def get_cameras(sampling_cameras = True, elevs = torch.tensor([0]), azims = torc
 # get a fixed camera that is used for visualization
 def get_visual_camera(perspective_camera = True, camera_dist = 2.7, azim = 0, elev = 0, pos = None):
     """
-    Get a single camera at some fixed position
+    Get a single camera at some fixed position.
     Arguments:
         perspective_camera: whether to use perspective camera or orthographic camera, boolean
         camera_dist: distance of camera to mesh center (0,0,0)
@@ -107,7 +107,7 @@ def get_visual_camera(perspective_camera = True, camera_dist = 2.7, azim = 0, el
 
 def get_rgba_rendering(mesh, renderer, camera, lights):
     """
-    Get rendering of mesh
+    Get rendering of mesh.
     Arguments:
         mesh: 3D mesh object to be rendered
         renderer: PyTorch3D differentiable renderer
@@ -134,7 +134,7 @@ def grid_plot(mesh,
               sil_shader = True,
               rgb = False):
     """
-    Get multiple renderings of mesh from different view points, and plot renderings in grid
+    Get multiple renderings of mesh from different view points, and plot renderings in grid.
     Arguments:
         mesh: 3D mesh object to be rendered
         perspective_camera: whether to use perspective camera or orthographic camera, boolean
@@ -175,7 +175,7 @@ def single_plot(mesh,
                 sil_shader = True,
                 rgb = False):
     """
-    Plot a single rendering of mesh from some view point
+    Plot a single rendering of mesh from some view point.
     Arguments:
         mesh: 3D mesh object to be rendered
         perspective_camera: whether to use perspective camera or orthographic camera, boolean
