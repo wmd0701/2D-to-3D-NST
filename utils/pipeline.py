@@ -261,8 +261,8 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
 
             # compute style loss
             for sl, sl_weight in zip(style_losses, style_weights):
-                mean_loss += sl.mean_loss * sl_weight
-                std_loss += sl.std_loss * sl_weight
+                mean_loss += sl.losses['mean_loss'] * sl_weight
+                std_loss += sl.losses['std_loss'] * sl_weight
 
             # add current iter loss to history
             loss_history['mean_loss']['values'].append(mean_loss.detach().cpu())
