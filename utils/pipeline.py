@@ -234,8 +234,7 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
     optimizer = torch.optim.LBFGS([input_img], lr=learning_rate) #LBFGS([input_img], lr=lr)
 
     # loss history
-    mean_loss_history = []
-    std_loss_history = []
+    loss_history = {name: {'weight':1.0, 'values':[]} for name in ['mean_loss', 'std_loss']}
 
     if not silent:
         print()
@@ -262,8 +261,8 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
                 std_loss += sl.std_loss * sl_weight
 
             # add current iter loss to history
-            mean_loss_history.append(mean_loss.detach().cpu())
-            std_loss_history.append(std_loss.detach().cpu())
+            loss_history['mean_loss']['values'].append(mean_loss.detach().cpu())
+            loss_history['std_loss']['values'].append(std_loss.detach().cpu())
 
             # backward
             mean_and_std_loss = mean_loss + std_loss
@@ -284,7 +283,7 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
     # with torch.no_grad():
         # input_img.clamp_(0, 1)
 
-    return input_img, mean_loss_history, std_loss_history, style_losses
+    return input_img, loss_history, style_losses
 
 
 def pipeline_3D_NST(org_mesh,
