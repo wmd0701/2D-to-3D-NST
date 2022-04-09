@@ -469,7 +469,7 @@ def pipeline_3D_NST(org_mesh,
             with torch.no_grad():
                 new_rendering_rgba = get_rgba_rendering(new_mesh, renderer, camera_visual, lights).detach().cpu()
             rgb = optim_type == 'texturing' or reshaping_rgb
-            sil = optim_type == 'reshaping'
+            sil = optim_type == 'reshaping' or (optim_init is not None)
             visualize_prediction(new_rendering_rgba = new_rendering_rgba, org_rendering_rgba = org_rendering_rgba, rgb = rgb, sil = sil, title="iter: %d" % i)
                  
             # save mesh
