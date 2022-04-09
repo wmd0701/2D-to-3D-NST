@@ -468,13 +468,14 @@ def pipeline_3D_NST(org_mesh,
         if i in plot_period:
             with torch.no_grad():
                 new_rendering_rgba = get_rgba_rendering(new_mesh, renderer, camera_visual, lights).detach().cpu()
-            rgb = optim_type == 'texturing' and not reshaping_rgb
-            visualize_prediction(new_rendering_rgba = new_rendering_rgba, org_rendering_rgba = org_rendering_rgba, rgb = rgb, title="iter: %d" % i)
+            rgb = optim_type == 'texturing' or reshaping_rgb
+            sil = optim_type == 'reshaping'
+            visualize_prediction(new_rendering_rgba = new_rendering_rgba, org_rendering_rgba = org_rendering_rgba, rgb = rgb, sil = sil, title="iter: %d" % i)
                  
             # save mesh
             final_verts, final_faces = new_mesh.get_mesh_verts_faces(0)
             final_verts = final_verts * scale + center
-            final_obj = "obj_iter" + str(i) + ".obj"
+            final_obj = "./runtime_objs/obj_iter" + str(i) + ".obj"
             save_obj(final_obj, final_verts, final_faces)
 
             # add rendering to dictionary

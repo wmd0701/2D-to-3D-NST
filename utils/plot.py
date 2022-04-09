@@ -249,19 +249,20 @@ def image_grid(
         if not show_axes:
             ax.set_axis_off()
 
-def visualize_prediction(new_rendering_rgba, org_rendering_rgba, rgb = False, title=''):
+def visualize_prediction(new_rendering_rgba, org_rendering_rgba, rgb = False, sil = True, title=''):
     """
     Plot the latest rendering vs original rendering. This function may be provoked many times
     during optimization iterations.
     Arguments:
         new_rendering_rgba: new rendering tensor of shape (h,w,4)
         org_rendering_rgba: old rendering tensor of shapr (h,w,4) 
-        rgb: whether to plot RGB channels or silhouette channel, boolean
+        rgb: whether to plot RGB channels, boolean
+        sil: whether to plot silhouette channel, boolean
         titile: title of plot
     Returns:
         no return
     """
-    if rgb:
+    if rgb and sil:
         plt.figure(figsize=(16, 4))    
         plt.subplot(1, 4, 1)
         plt.imshow(new_rendering_rgba[..., :3])
@@ -275,11 +276,21 @@ def visualize_prediction(new_rendering_rgba, org_rendering_rgba, rgb = False, ti
         plt.subplot(1, 4, 4)
         plt.imshow(org_rendering_rgba[..., 3])
         plt.axis("off")
-    else:
-        plt.figure(figsize=(8, 4))
+    elif rgb:
+        plt.figure(figsize=(10, 5))
+        plt.subplot(1, 2, 1)
+        plt.imshow(new_rendering_rgba[..., :3])
+        plt.title(title)
+        plt.subplot(1, 2, 2)
+        plt.imshow(org_rendering_rgba[..., :3])
+        plt.axis("off")
+    elif sil:
+        plt.figure(figsize=(10, 5))
         plt.subplot(1, 2, 1)
         plt.imshow(new_rendering_rgba[..., 3])
         plt.title(title)
         plt.subplot(1, 2, 2)
         plt.imshow(org_rendering_rgba[..., 3])
         plt.axis("off")
+    else:
+        raise RuntimeError("rbg and sil cannot both be False!")
