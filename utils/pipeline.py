@@ -2,14 +2,18 @@
 import torch
 import numpy as np
 from tqdm.notebook import tqdm
-from pytorch3d.io import save_obj
-from pytorch3d.renderer import TexturesVertex
 from utils.data_loader import tensor_loader
 from utils.plot import visualize_prediction
 from utils.model import get_models_2D_NST, get_models_3D_NST, get_models_OpsOnBNST
 from utils.NoStdStreams import NoStdStreams
 from utils.mesh_preprocess import mesh_normalization
 from utils.renderer import get_renderer, get_lights, get_cameras, get_rgba_rendering, get_visual_camera
+try:
+    from pytorch3d.io import save_obj
+    from pytorch3d.renderer import TexturesVertex
+except ModuleNotFoundError:
+    print("PyTorch3D not installed! Ignore this message if running 2D NST.")
+
 
 style_layers_default  = ['conv1_1', 'conv2_1', 'conv3_1', 'conv4_1']
 style_weights_default = [1e6/n**2 for n in [64,128,256,512]]
