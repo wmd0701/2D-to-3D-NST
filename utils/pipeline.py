@@ -531,11 +531,11 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
         mask_pooling: type of pooling layer in mask model, can be 'max' or 'avg'
         clamping: whether to clamp per-vertex color in range [0,1] in case of texturing
     Returns:
-        what_to_optimize: per-vertex position offset or per-vertex color depending on task type
-        cameras: generated camera, may be reused in case of sequential reshaping and texturing
-        loss_history: dictionary of loss history
+        verts_offsets: per-vertex position offset
+        verts_colors: per-vertex color
+        loss_history_reshaping: dictionary of loss history for reshaping
+        loss_history_texturing: dictionary of loss history for texturing
         rendering_at_iter: list stores renderings at plot_period
-
     """
   
     # normalize mesh
@@ -609,7 +609,7 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
             # forward pass for reshaping
             if masking:
                 model_mask(mask_tensor)
-            model_style(rendering_sil)
+            model_style(rendering_tensor_sil)
 
             # sum up style losses over all style loss layers
             for sl, sl_weight in zip(style_losses, style_weights):
