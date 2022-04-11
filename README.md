@@ -20,7 +20,7 @@ Just open the notebook on Google Colab with GPU runtime, and run the notebook st
 
 ## Files:
 
-There are 7 notebooks included in this repository. Their functions are as follow:
+There are 8 notebooks included in this repository. Their functions are as follow:
 
 - 2D NST: 2D neural style transfer, i.e. transfering style from style image onto content image
 - 2D NST compare statistics: allowing FFT filtering on different feature levels, comparing statistics and style reconstructions of different configs
@@ -29,3 +29,4 @@ There are 7 notebooks included in this repository. Their functions are as follow
 - 3D NST simultaneous reshaping and texturing: simultaneously reshaping and texturing
 - 3D NST sequential reshaping and texturing: sequentially reshaping and texturing, with intermedia result from reshaping taken as color init value for texturing
 - 3D NST per-layer operation on BNST: allowing affine transformation and 1D FFT filtering on batch normalization statistics in each leayer
+- 3D NST amazing: some amazing result
