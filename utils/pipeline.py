@@ -313,8 +313,7 @@ def pipeline_3D_NST(org_mesh,
                     model_pooling = 'max',
                     mask_pooling = 'avg',
                     clamping = False,
-                    reshaping_rgb = False,
-                    noise_color = False):
+                    reshaping_rgb = False):
     """
     Pipeline for running 3D neural style transfer, either reshaping or texturing.
     Arguments:
@@ -341,8 +340,7 @@ def pipeline_3D_NST(org_mesh,
         model_pooling: type of pooling layer in style model, can be 'max' or 'avg'
         mask_pooling: type of pooling layer in mask model, can be 'max' or 'avg'
         clamping: whether to clamp per-vertex color in range [0,1] in case of texturing
-        reshaping_rgb: whether to conduct reshaping with colorful renderings instead of silhouettes, boolean
-        noise_color: whether to initialize per-vertex color with random noise, boolean
+        reshaping_rgb: whether to conduct reshaping with colorful renderings instead of silhouettes, boolean 
     Returns:
         what_to_optimize: per-vertex position offset or per-vertex color depending on task type
         cameras: generated camera, may be reused in case of sequential reshaping and texturing
@@ -367,10 +365,8 @@ def pipeline_3D_NST(org_mesh,
             what_to_optimize.requires_grad = True
     elif optim_type == 'texturing':
         if optim_init is None:
-            if noise_color:
-                what_to_optimize = torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
-            else:
-                what_to_optimize = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
+            # what_to_optimize = torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
+            what_to_optimize = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
             
         else:
             what_to_optimize = optim_init.view(1, verts_shape[0], 3)
@@ -512,8 +508,7 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
                                     masking = False,
                                     model_pooling = 'max',
                                     mask_pooling = 'avg',
-                                    clamping = False,
-                                    noise_color = False):
+                                    clamping = False):
     """
     Pipeline for running 3D neural style transfer, reshaping and texturing simultaneously.
     Arguments:
@@ -539,7 +534,6 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
         model_pooling: type of pooling layer in style model, can be 'max' or 'avg'
         mask_pooling: type of pooling layer in mask model, can be 'max' or 'avg'
         clamping: whether to clamp per-vertex color in range [0,1] in case of texturing
-        noise_color: whether to initialize per-vertex color with random noise, boolean
     Returns:
         verts_offsets: per-vertex position offset
         verts_colors: per-vertex color
@@ -554,7 +548,7 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
     # optimizer and the tensor to be optimized
     verts_shape = org_mesh.verts_packed().shape
     verts_offsets = torch.full(verts_shape, 0.0, device=device, requires_grad=True)
-    verts_colors  = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True) if not noise_color else torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
+    verts_colors  = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
     optimizer_reshaping = torch.optim.Adam([verts_offsets], lr=reshaping_lr)
     optimizer_texturing = torch.optim.Adam([verts_colors ], lr=texturing_lr)
 
@@ -707,7 +701,6 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
                     plot_period = [10, 50, 100, 200, 500],
                     model_pooling = 'max',
                     clamping = False,
-                    noise_color = False,
                     indices = None,
                     mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
                     std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None):
@@ -736,7 +729,6 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
         plot_period: at which iteration to plot rendering and save mesh object
         model_pooling: type of pooling layer in style model, can be 'max' or 'avg'
         clamping: whether to clamp per-vertex color in range [0,1] in case of texturing
-        noise_color: whether to initialize per-vertex color with random noise, boolean
         indices: subset of channels to consider w.r.t. BNST loss
         *coef and *bias: params for affine transformation, e.g. x --> x * x_coef + x_bias
     Returns:
@@ -763,10 +755,8 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
             what_to_optimize.requires_grad = True
     elif optim_type == 'texturing':
         if optim_init is None:
-            if noise_color:
-                what_to_optimize = torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
-            else:
-                what_to_optimize = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
+            # what_to_optimize = torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
+            what_to_optimize = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
             
         else:
             what_to_optimize = optim_init.view(1, verts_shape[0], 3)
