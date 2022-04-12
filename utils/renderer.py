@@ -17,6 +17,7 @@ except:
     print("PyTorch3D not installed! Ignore this message if running 2D NST.")
 from utils.poisson_disc_sampling import Poisson_disc_sampling
 from utils.plot import image_grid
+from utils.mesh_preprocess import mesh_normalization
 
 # GPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -152,6 +153,9 @@ def grid_plot(mesh,
         rgb: whether to plot RGB rendering or silhouette, boolean
     """
 
+    # normalize mesh
+    _, _ = mesh_normalization(mesh)
+
     Rs, Ts = look_at_view_transform(dist=camera_dist, elev=elevs, azim=azims)
 
     if perspective_camera:
@@ -190,6 +194,9 @@ def single_plot(mesh,
         sil_shader: whether to use silhouette renderer or soft phong renderer, boolean
         rgb: whether to plot RGB rendering or silhouette, boolean
     """
+
+    # normalize mesh
+    _, _ = mesh_normalization(mesh)
 
     R, T = look_at_view_transform(dist=camera_dist, elev=elev, azim=azim)
     camera = FoVPerspectiveCameras(device=device, R=R, T=T) if perspective_camera else FoVOrthographicCameras(device=device, R=R, T=T)   
