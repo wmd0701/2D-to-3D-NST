@@ -369,9 +369,8 @@ def pipeline_3D_NST(org_mesh,
             what_to_optimize = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
             
         else:
-            what_to_optimize = optim_init.view(1, verts_shape[0], 3)
+            what_to_optimize = optim_init.view(1, verts_shape[0], 3).detach()# make leaf tensor
             what_to_optimize = (what_to_optimize - what_to_optimize.min()) / (what_to_optimize.max() - what_to_optimize.min()) # normalize to [0,1]
-            what_to_optimize = what_to_optimize.detach() # make leaf tensor
             what_to_optimize.requires_grad = True
         org_mesh.textures = TexturesVertex(verts_features = what_to_optimize)
     else:
