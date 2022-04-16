@@ -4,7 +4,7 @@ import numpy as np
 from tqdm.notebook import tqdm
 from utils.data_loader import tensor_loader
 from utils.plot import visualize_prediction
-from utils.model import get_models_2D_NST, get_models_3D_NST, get_models_OpsOnBNST
+from utils.model import get_models_2D_NST, get_models_3D_NST, get_models_OpsOnBNST, get_models_SepFreq
 from utils.NoStdStreams import NoStdStreams
 from utils.mesh_preprocess import mesh_normalization
 from utils.renderer import get_renderer, get_lights, get_cameras, get_rgba_rendering, get_visual_camera
@@ -110,6 +110,7 @@ def pipeline_2D_NST(style_img,
     if need_content:
         loss_history['content'] = {'weight': content_weights[0], 'values':[]}
 
+    # pipeline
     if not silent:
         print()
         print('Optimizing..')
@@ -209,8 +210,7 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
         *freq_upper: FFT low pass filter threshold
     Returns:
         input_img: tensor for stylized input image
-        mean_loss_history: list stores BN mean loss
-        std_loss_history: list stores BN std loss
+        loss_history: dictionary for loss history
         style_losses: list of style loss layers
 
     """
@@ -240,6 +240,7 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
     # loss history
     loss_history = {name: {'weight':1.0, 'values':[]} for name in ['mean_loss', 'std_loss']}
 
+    # pipeline
     if not silent:
         print()
         print('Optimizing..')
@@ -288,6 +289,112 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
         # input_img.clamp_(0, 1)
 
     return input_img, loss_history, style_losses
+
+
+def pipeline_2D_NST_SepFreq(    style_img,
+                                input_img, 
+                                n_iters = 200,
+                                style_weights = style_weights_default,
+                                style_layers = style_layers_default, 
+                                learning_rate = 1,
+                                model_pooling = 'max',
+                                silent = True,
+                                freq_threshold = 1e-10,
+                                mean_weight = 1,
+                                std_high_freq_weight = 1, 
+                                std_low_freq_weight = 1):
+    """
+    Pipleline for running 2D neural style transfer with BNST loss, where the BN std is separated into high frequency and low
+    frequency parts.
+    Arguments:
+        style_img: style image tensor of shape (1,3,h,w)
+        input_img: input image tensor, whose reshape depends on whether to consider content loss and types of style losses
+        n_iters: number of iterations
+        style_weights: list of weights attached to each style layer
+        style_layers: list of style layer names, e.g. ['conv1_1', 'conv3_1']
+        learning_rate: learning rate for LBFGS optimizer
+        model_pooling: type of pooling layer in style/content model, can be 'max' or 'avg'
+        silent: whether to print less to console, boolean
+        freq_threshold: at which frequency to separate high and low frequency parts
+        mean_weight: loss weight for BN mean
+        std_high_freq_weight: loss weight for high frequency part to BN std
+        std_low_freq_weight: loss weight for low frequency part to BN std
+    Returns:
+        input_img: tensor for stylized input image
+        style_losses: list of style loss layers
+
+    """
+
+    if not silent:
+        print('Building the style transfer model..')
+        print()
+
+
+    # get style and content models        
+    model_style, style_losses = get_models_SepFreq( style_img,
+                                                    style_layers = style_layers,
+                                                    model_pooling = model_pooling,
+                                                    silent = silent,
+                                                    freq_threshold = freq_threshold,
+                                                    mean_weight = mean_weight,
+                                                    std_high_freq_weight = std_high_freq_weight,
+                                                    std_low_freq_weight = std_low_freq_weight
+                                                    )
+    
+    # optimize only the input image and not the model parameters, so set all the requires_grad fields accordingly
+    input_img.requires_grad_(True)
+    model_style.requires_grad_(False)
+    
+    # optimizer
+    optimizer = torch.optim.LBFGS([input_img], lr=learning_rate) #LBFGS([input_img], lr=lr)
+
+    # pipeline
+    if not silent:
+        print()
+        print('Optimizing..')
+    run = [0]
+    while run[0] <= n_iters:
+
+        def closure():
+            # with torch.no_grad():
+                # input_img.clamp_(eps, one)
+            
+            optimizer.zero_grad()
+
+            # forward pass
+            model_style(input_img)
+            
+            # loss in current optimization iteration
+            mean_loss = 0
+            std_high_freq_loss = 0
+            std_low_freq_loss = 0
+
+            # compute style loss
+            for sl, sl_weight in zip(style_losses, style_weights):
+                mean_loss += sl.losses['mean_loss'] * sl_weight
+                std_high_freq_loss += sl.losses['std_high_freq_loss'] * sl_weight
+                std_low_freq_loss += sl.losses['std_low_freq_loss'] * sl_weight
+
+            # backward
+            mean_and_std_loss = mean_loss + std_high_freq_loss + std_low_freq_loss
+            mean_and_std_loss.backward()
+
+            run[0] += 1
+            if run[0] % 20 == 0:
+                print("run {}:".format(run))
+                if not silent:
+                    print('mean loss : {:.4f}'.format(mean_loss.item()) + '   std loss : {:.4f}'.format((std_high_freq_loss + std_low_freq_loss).item()))
+                    print()
+
+            return mean_and_std_loss
+
+        optimizer.step(closure)
+
+
+    # with torch.no_grad():
+        # input_img.clamp_(0, 1)
+
+    return input_img, style_losses
 
 
 def pipeline_3D_NST(org_mesh,

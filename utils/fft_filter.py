@@ -38,16 +38,24 @@ def fft_filter_2D(input, freq_lower = None, freq_upper = None):
     return torch.fft.irfftn(fft_input * kernel)
     
 # 1D FFT filter
-def fft_filter_1D(input, freq_lower = None, freq_upper = None):
+def fft_filter_1D(input, freq_lower = None, freq_upper = None, kernel = None):
     """
     1D FFT filter
     Arguments:
         input: tensor to be filtered, must be 1D vector
         freq_lower: FFT high pass filter threshold
         freq_upper: FFT low pass filter threshold
+        kernel: pre-computed kernel
     Return:
         filtered tensor
     """
+
+    # if kernel is already given
+    if kernel is not None:
+        fft_input = torch.fft.rfft(input)
+        return torch.fft.irfft(fft_input * kernel)
+
+    # if actually no FFT filtering is needed
     if freq_lower is None and freq_upper is None: 
         return input
     

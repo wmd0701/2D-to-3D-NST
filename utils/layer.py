@@ -263,3 +263,64 @@ class StyleLossOpsOnBNST(torch.nn.Module):
         self.losses['std_loss'] = std_loss
         
         return input
+
+class StyleLossSepFreq(torch.nn.Module):  
+    """
+    A simplified style loss layer which only computes style loss based on batch normalization statistics, 
+    where the stds are separated into high frequency part and low frequency part.
+    """
+
+    def __init__(self, target_style, freq_threshold = 1e-10, mean_weight = 1, std_high_freq_weight = 1, std_low_freq_weight = 1):
+        super(StyleLossOpsOnBNST, self).__init__()
+
+        # b: batch size, which should be 1
+        # c: number of channels
+        # h: height
+        # w: width
+        b, c, h, w = target_style.size()
+        # print("c:", "{:3d}".format(c), "  h:", "{:3d}".format(h), "  w:", "{:3d}".format(w))
+        style_feature = target_style.view(c, h * w)
+        
+        self.target_mean, self.target_std = BN_mean_and_std(style_feature)
+        self.target_mean.detach_()
+        self.target_std.detach_()
+
+        # FFT filter kernel
+        freq = torch.abs(torch.fft.rfftfreq(c))
+        self.kernel_high = (freq >= freq_threshold).to(device)
+        self.kernel_low  = (freq < freq_threshold).to(device)
+        
+        # apply 1D FFT filter to std
+        self.target_std_high_freq = fft_filter_1D(self.target_std, kernel = self.kernel_high)
+        self.target_std_low_freq  = fft_filter_1D(self.target_std, kernel = self.kernel_low)
+        
+        # other parameters
+        self.freq_threshold = freq_threshold
+        self.std_high_freq_weight = std_high_freq_weight
+        self.std_low_freq_weight  = std_low_freq_weight
+        self.mean_weight = mean_weight
+
+    ####################################### forward #######################################
+    def forward(self, input):
+        b, c, h, w = input.size()     # b = 1 since there is only one image in batch
+        
+        input_feature = input.view(c, h * w)
+ 
+        input_mean, input_std = BN_mean_and_std(input_feature)
+        
+        # FFT filter to input std
+        input_std_high_freq = fft_filter_1D(input_std, kernel = self.kernel_high)
+        input_std_low_freq  = fft_filter_1D(input_std, kernel = self.kernel_low)
+
+        # losses
+        mean_loss = torch.nn.functional.mse_loss(input_mean, self.target_mean)
+        std_high_freq_loss  = torch.nn.functional.mse_loss(input_std_high_freq, self.target_std_high_freq)
+        std_low_freq_loss   = torch.nn.functional.mse_loss(input_std_low_freq , self.target_std_low_freq)
+        
+
+        self.losses = {}
+        self.losses['mean_loss'] = mean_loss * self.mean_weight
+        self.losses['std_high_freq_loss'] = std_high_freq_loss * self.std_high_freq_weight
+        self.losses['std_low_freq_loss' ] = std_low_freq_loss  * self.std_low_freq_weight
+        
+        return input

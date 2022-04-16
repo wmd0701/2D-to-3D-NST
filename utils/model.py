@@ -3,7 +3,7 @@
 import torch
 from copy import deepcopy
 import torchvision.models as models
-from utils.layer import GetMask, ContentLoss, StyleLoss, StyleLossOpsOnBNST
+from utils.layer import GetMask, ContentLoss, StyleLoss, StyleLossOpsOnBNST, StyleLossSepFreq
 
 style_layers_default = ['conv1_1', 'conv2_1', 'conv3_1', 'conv4_1']
 content_layers_default = ['conv4_2']
@@ -393,3 +393,106 @@ def get_models_3D_NST(  style_img,
         l.masking = masking
     
     return model_style, model_mask, style_losses
+
+
+def get_models_SepFreq(   style_img,
+                            style_layers = style_layers_default,
+                            model_pooling = 'max',
+                            silent = True,
+                            freq_threshold = 1e-10,
+                            mean_weight = 1,
+                            std_high_freq_weight = 1, 
+                            std_low_freq_weight = 1
+                            ):
+    """
+    Get style model and style loss layers, specialized for separating high and low frequency parts 
+    of BN std.
+    Arguments:
+        style_img: style image tensor of shape (1,3,M,N)
+        style_layers: list of style layer names, such as ['conv1_1', 'conv3_1']
+        model_pooling: type of pooling layer in style model, can be 'avg' or 'max'
+        silent: whether to print less to console, boolean
+        freq_threshold: at which frequency to separate high and low frequency parts
+        mean_weight: loss weight for BN mean
+        std_high_freq_weight: loss weight for high frequency part to BN std
+        std_low_freq_weight: loss weight for low frequency part to BN std
+    Returns:
+        model_style: style model
+        style_losses: list of style loss layers
+    """
+
+    # download vgg
+    cnn = models.vgg19(pretrained=True).features.to(device).eval()
+
+    # model for style
+    style_losses = []
+    style_layers   = [x.replace('conv', 'relu') for  x in style_layers]
+    model_style   = torch.nn.Sequential()
+
+    # single element to list
+    def element_to_list(element, length):
+        return [element] * length if not isinstance(element, list) else element
+    
+    freq_threshold = element_to_list(freq_threshold, len(style_layers))
+    mean_weight = element_to_list(mean_weight, len(style_layers))
+    std_high_freq_weight = element_to_list(std_high_freq_weight, len(style_layers))
+    std_low_freq_weight = element_to_list(std_low_freq_weight, len(style_layers))
+
+    conv_i = 1
+    relu_i = 1
+    pool_i = 1    # pool_i is important since conv blocks are separated by pooling layers
+    bn_i = 1
+    
+    for layer in cnn.children():
+        if isinstance(layer, torch.nn.Conv2d):
+            name = 'conv{}_{}'.format(pool_i, conv_i)
+            conv_i += 1
+        elif isinstance(layer, torch.nn.ReLU):
+            name = 'relu{}_{}'.format(pool_i, relu_i)
+            layer = torch.nn.ReLU(inplace=False) # in-place ReLU doesnt work well
+            relu_i += 1
+        elif isinstance(layer, torch.nn.BatchNorm2d):
+            name = 'bn{}_{}'.format(pool_i, bn_i)
+            bn_i += 1
+        elif isinstance(layer, torch.nn.MaxPool2d):
+            name = 'pool{}'.format(pool_i)
+            if model_pooling == 'max':
+                layer = torch.nn.MaxPool2d(kernel_size=2, stride=2)
+            elif model_pooling == 'avg':
+                layer = torch.nn.AvgPool2d(kernel_size=2, stride=2)
+            else:
+                raise RuntimeError("Pooling must be either max or avg! But now it is:" + model_pooling)
+            pool_i += 1
+            conv_i = 1
+            relu_i = 1
+            bn_i = 1  
+        else:
+            raise RuntimeError('Unrecognized layer: {}'.format(layer.__class__.__name__))
+
+        model_style.add_module(name, layer)
+        
+        # add style layers
+        if name in style_layers:
+            target_style = model_style(style_img).detach()
+            idx = style_layers.index(name)
+            style_loss = StyleLossSepFreq( target_style, freq_threshold = freq_threshold[idx], mean_weight = mean_weight[idx], 
+                                            std_high_freq_weight = std_high_freq_weight[idx], std_low_freq_weight = std_low_freq_weight[idx])
+            model_style.add_module("style_loss_{}_{}".format(pool_i, relu_i-1), style_loss)
+            style_losses.append(style_loss)
+
+
+    # trim off the layers after the last content and style losses
+    for i in range(len(model_style) - 1, -1, -1):
+        if isinstance(model_style[i], StyleLossSepFreq): # or isinstance(model_content[i], ContentLoss):
+            break
+        
+    model_style   = model_style  [:(i + 1)]
+    
+    
+    if not silent:
+        print()
+        print("Style model is as follow:")
+        print(model_style)
+        print()
+        
+    return model_style, style_losses
