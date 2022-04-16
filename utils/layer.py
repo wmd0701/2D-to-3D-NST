@@ -270,7 +270,7 @@ class StyleLossSepFreq(torch.nn.Module):
     where the stds are separated into high frequency part and low frequency part.
     """
 
-    def __init__(self, target_style, sep_freq = False, freq_threshold = 1e-10, mean_weight = 1, std_high_freq_weight = 1, std_low_freq_weight = 1):
+    def __init__(self, target_style, sep_freq = True, freq_threshold = 1e-10, mean_weight = 1, std_high_freq_weight = 1, std_low_freq_weight = 1):
         super(StyleLossSepFreq, self).__init__()
 
         # b: batch size, which should be 1
