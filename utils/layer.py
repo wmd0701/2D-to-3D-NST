@@ -271,7 +271,7 @@ class StyleLossSepFreq(torch.nn.Module):
     """
 
     def __init__(self, target_style, freq_threshold = 1e-10, mean_weight = 1, std_high_freq_weight = 1, std_low_freq_weight = 1):
-        super(StyleLossOpsOnBNST, self).__init__()
+        super(StyleLossSepFreq, self).__init__()
 
         # b: batch size, which should be 1
         # c: number of channels
