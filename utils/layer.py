@@ -287,12 +287,12 @@ class StyleLossSepFreq(torch.nn.Module):
 
         # FFT filter kernel
         freq = torch.abs(torch.fft.rfftfreq(c))
-        self.kernel_high = (freq >= freq_threshold).to(device)
-        self.kernel_low  = (freq < freq_threshold).to(device)
+        self.kernel_high = (freq >= freq_threshold).to(device).detach()
+        self.kernel_low  = (freq < freq_threshold).to(device).detach()
         
         # apply 1D FFT filter to std
-        self.target_std_high_freq = fft_filter_1D(self.target_std, kernel = self.kernel_high)
-        self.target_std_low_freq  = fft_filter_1D(self.target_std, kernel = self.kernel_low)
+        self.target_std_high_freq = fft_filter_1D(self.target_std, kernel = self.kernel_high).detach()
+        self.target_std_low_freq  = fft_filter_1D(self.target_std, kernel = self.kernel_low).detach()
         
         # other parameters
         self.freq_threshold = freq_threshold
