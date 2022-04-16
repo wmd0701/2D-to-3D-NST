@@ -270,7 +270,7 @@ class StyleLossSepFreq(torch.nn.Module):
     where the stds are separated into high frequency part and low frequency part.
     """
 
-    def __init__(self, target_style, freq_threshold = 1e-10, mean_weight = 1, std_high_freq_weight = 1, std_low_freq_weight = 1):
+    def __init__(self, target_style, sep_freq = False, freq_threshold = 1e-10, mean_weight = 1, std_high_freq_weight = 1, std_low_freq_weight = 1):
         super(StyleLossSepFreq, self).__init__()
 
         # b: batch size, which should be 1
@@ -299,6 +299,7 @@ class StyleLossSepFreq(torch.nn.Module):
         self.std_high_freq_weight = std_high_freq_weight
         self.std_low_freq_weight  = std_low_freq_weight
         self.mean_weight = mean_weight
+        self.sep_freq = sep_freq
 
     ####################################### forward #######################################
     def forward(self, input):
@@ -316,13 +317,16 @@ class StyleLossSepFreq(torch.nn.Module):
         mean_loss = torch.nn.functional.mse_loss(input_mean, self.target_mean)
         # std_high_freq_loss  = torch.nn.functional.mse_loss(input_std_high_freq, self.target_std_high_freq)
         # std_low_freq_loss   = torch.nn.functional.mse_loss(input_std_low_freq , self.target_std_low_freq)
+        std_loss = torch.nn.functional.mse_loss(input_std, self.target_std)
         std_high_freq_loss = torch.nn.functional.mse_loss(input_std, self.target_std_high_freq)
         std_low_freq_loss  = torch.nn.functional.mse_loss(input_std, self.target_std_low_freq)
         
 
         self.losses = {}
         self.losses['mean_loss'] = mean_loss * self.mean_weight
-        self.losses['std_high_freq_loss'] = std_high_freq_loss * self.std_high_freq_weight
-        self.losses['std_low_freq_loss' ] = std_low_freq_loss  * self.std_low_freq_weight
+        if self.sep_freq:
+            self.losses['std_loss'] = std_high_freq_loss * self.std_high_freq_weight + std_low_freq_loss  * self.std_low_freq_weight
+        else:
+            self.losses['std_loss' ] = std_loss
         
         return input

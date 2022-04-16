@@ -299,6 +299,7 @@ def pipeline_2D_NST_SepFreq(    style_img,
                                 learning_rate = 1,
                                 model_pooling = 'max',
                                 silent = True,
+                                sep_freq = False,
                                 freq_threshold = 1e-10,
                                 mean_weight = 1,
                                 std_high_freq_weight = 1, 
@@ -315,6 +316,7 @@ def pipeline_2D_NST_SepFreq(    style_img,
         learning_rate: learning rate for LBFGS optimizer
         model_pooling: type of pooling layer in style/content model, can be 'max' or 'avg'
         silent: whether to print less to console, boolean
+        sep_freq: whether to separate BN std into high and low frequency parts, boolean
         freq_threshold: at which frequency to separate high and low frequency parts
         mean_weight: loss weight for BN mean
         std_high_freq_weight: loss weight for high frequency part to BN std
@@ -335,6 +337,7 @@ def pipeline_2D_NST_SepFreq(    style_img,
                                                     style_layers = style_layers,
                                                     model_pooling = model_pooling,
                                                     silent = silent,
+                                                    sep_freq = sep_freq,
                                                     freq_threshold = freq_threshold,
                                                     mean_weight = mean_weight,
                                                     std_high_freq_weight = std_high_freq_weight,
@@ -366,24 +369,22 @@ def pipeline_2D_NST_SepFreq(    style_img,
             
             # loss in current optimization iteration
             mean_loss = 0
-            std_high_freq_loss = 0
-            std_low_freq_loss = 0
+            std_loss = 0
 
             # compute style loss
             for sl, sl_weight in zip(style_losses, style_weights):
                 mean_loss += sl.losses['mean_loss'] * sl_weight
-                std_high_freq_loss += sl.losses['std_high_freq_loss'] * sl_weight
-                std_low_freq_loss += sl.losses['std_low_freq_loss'] * sl_weight
-
+                std_loss += sl.losses['std_loss'] * sl_weight
+                
             # backward
-            mean_and_std_loss = mean_loss + std_high_freq_loss + std_low_freq_loss
+            mean_and_std_loss = mean_loss + std_loss
             mean_and_std_loss.backward()
 
             run[0] += 1
             if run[0] % 20 == 0:
                 print("run {}:".format(run))
                 if not silent:
-                    print('mean loss : {:.4f}'.format(mean_loss.item()) + '   std loss : {:.4f}'.format((std_high_freq_loss + std_low_freq_loss).item()))
+                    print('mean loss : {:.4f}'.format(mean_loss.item()) + '   std loss : {:.4f}'.format(std_loss.item()))
                     print()
 
             return mean_and_std_loss

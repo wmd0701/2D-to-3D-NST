@@ -399,6 +399,7 @@ def get_models_SepFreq(   style_img,
                             style_layers = style_layers_default,
                             model_pooling = 'max',
                             silent = True,
+                            sep_freq = False,
                             freq_threshold = 1e-10,
                             mean_weight = 1,
                             std_high_freq_weight = 1, 
@@ -437,6 +438,7 @@ def get_models_SepFreq(   style_img,
     mean_weight = element_to_list(mean_weight, len(style_layers))
     std_high_freq_weight = element_to_list(std_high_freq_weight, len(style_layers))
     std_low_freq_weight = element_to_list(std_low_freq_weight, len(style_layers))
+    sep_freq = element_to_list(sep_freq, len(style_layers))
 
     conv_i = 1
     relu_i = 1
@@ -475,7 +477,7 @@ def get_models_SepFreq(   style_img,
         if name in style_layers:
             target_style = model_style(style_img).detach()
             idx = style_layers.index(name)
-            style_loss = StyleLossSepFreq( target_style, freq_threshold = freq_threshold[idx], mean_weight = mean_weight[idx], 
+            style_loss = StyleLossSepFreq( target_style, sep_freq = sep_freq[idx], freq_threshold = freq_threshold[idx], mean_weight = mean_weight[idx], 
                                             std_high_freq_weight = std_high_freq_weight[idx], std_low_freq_weight = std_low_freq_weight[idx])
             model_style.add_module("style_loss_{}_{}".format(pool_i, relu_i-1), style_loss)
             style_losses.append(style_loss)
