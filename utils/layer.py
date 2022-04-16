@@ -310,23 +310,21 @@ class StyleLossSepFreq(torch.nn.Module):
         input_mean, input_std = BN_mean_and_std(input_feature)
         
         # FFT filter to input std
-        # input_std_high_freq = fft_filter_1D(input_std, kernel = self.kernel_high)
-        # input_std_low_freq  = fft_filter_1D(input_std, kernel = self.kernel_low)
+        input_std_high_freq = fft_filter_1D(input_std, kernel = self.kernel_high)
+        input_std_low_freq  = fft_filter_1D(input_std, kernel = self.kernel_low)
 
         # losses
         mean_loss = torch.nn.functional.mse_loss(input_mean, self.target_mean)
-        # std_high_freq_loss  = torch.nn.functional.mse_loss(input_std_high_freq, self.target_std_high_freq)
-        # std_low_freq_loss   = torch.nn.functional.mse_loss(input_std_low_freq , self.target_std_low_freq)
-        std_loss = torch.nn.functional.mse_loss(input_std, self.target_std)
-        std_high_freq_loss = torch.nn.functional.mse_loss(input_std, self.target_std_high_freq)
-        std_low_freq_loss  = torch.nn.functional.mse_loss(input_std, self.target_std_low_freq)
+        if self.sep_freq:
+            std_high_freq_loss  = torch.nn.functional.mse_loss(input_std_high_freq, self.target_std_high_freq)
+            std_low_freq_loss   = torch.nn.functional.mse_loss(input_std_low_freq , self.target_std_low_freq)
+        else:
+            std_high_freq_loss = torch.nn.functional.mse_loss(input_std, self.target_std_high_freq)
+            std_low_freq_loss  = torch.nn.functional.mse_loss(input_std, self.target_std_low_freq)
         
 
         self.losses = {}
         self.losses['mean_loss'] = mean_loss * self.mean_weight
-        if self.sep_freq:
-            self.losses['std_loss'] = std_high_freq_loss * self.std_high_freq_weight + std_low_freq_loss  * self.std_low_freq_weight
-        else:
-            self.losses['std_loss' ] = std_loss
+        self.losses['std_loss'] = std_high_freq_loss * self.std_high_freq_weight + std_low_freq_loss  * self.std_low_freq_weight
         
         return input
