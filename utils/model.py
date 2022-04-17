@@ -264,7 +264,7 @@ def get_models_OpsOnBNST(   style_img,
             idx = style_layers.index(name)
             style_loss = StyleLossOpsOnBNST( target_style, indices=indices[idx], 
                                     mean_coef=mean_coef[idx], mean_bias=mean_bias[idx], std_coef=std_coef[idx], std_bias=std_bias[idx], 
-                                    mean_freq=mean_freq[idx], std_freq_upper=std_freq[idx])
+                                    mean_freq=mean_freq[idx], std_freq=std_freq[idx])
             model_style.add_module("style_loss_{}_{}".format(pool_i, relu_i-1), style_loss)
             style_losses.append(style_loss)
 
