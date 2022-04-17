@@ -417,7 +417,8 @@ def pipeline_3D_NST(org_mesh,
                     model_pooling = 'max',
                     mask_pooling = 'avg',
                     clamping = False,
-                    reshaping_rgb = False):
+                    reshaping_rgb = False,
+                    rgb_to_grayscale = False):
     """
     Pipeline for running 3D neural style transfer, either reshaping or texturing.
     Arguments:
@@ -445,6 +446,7 @@ def pipeline_3D_NST(org_mesh,
         mask_pooling: type of pooling layer in mask model, can be 'max' or 'avg'
         clamping: whether to clamp per-vertex color in range [0,1] in case of texturing
         reshaping_rgb: whether to conduct reshaping with colorful renderings instead of silhouettes, boolean 
+        rgb_to_grayscale: whether to convert rgb tensor into grayscale and then to duplicate over channels, boolean
     Returns:
         what_to_optimize: per-vertex position offset or per-vertex color depending on task type
         cameras: generated camera, may be reused in case of sequential reshaping and texturing
@@ -535,7 +537,7 @@ def pipeline_3D_NST(org_mesh,
             # get data tensors
             rendering_rgba = get_rgba_rendering(new_mesh, renderer, cameras[j], lights) 
             rendering = rendering_rgba[..., 3] if optim_type == 'reshaping' and not reshaping_rgb else rendering_rgba[..., :3]
-            rendering_tensor = tensor_loader(rendering)
+            rendering_tensor = tensor_loader(rendering, rgb_to_grayscale = rgb_to_grayscale)
             mask_tensor = tensor_loader(rendering_rgba[...,3], mask = True)
             
             # forward pass
