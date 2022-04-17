@@ -3,7 +3,7 @@
 import torch
 from copy import deepcopy
 import torchvision.models as models
-from utils.layer import GetMask, ContentLoss, StyleLoss, StyleLossOpsOnBNST, StyleLossSepFreq
+from utils.layer import GetMask, ContentLoss, StyleLoss, StyleLossOpsOnBNST, StyleLossAmplifyFreq
 
 style_layers_default = ['conv1_1', 'conv2_1', 'conv3_1', 'conv4_1']
 content_layers_default = ['conv4_2']
@@ -393,16 +393,13 @@ def get_models_3D_NST(  style_img,
     return model_style, model_mask, style_losses
 
 
-def get_models_SepFreq(   style_img,
+def get_models_AmplifyFreq( style_img,
                             style_layers = style_layers_default,
                             model_pooling = 'max',
                             silent = True,
-                            sep_freq = True,
-                            freq_high = 1e-10,
-                            freq_low = 1e-10,
-                            mean_weight = 1,
-                            std_high_freq_weight = 1, 
-                            std_low_freq_weight = 1
+                            sep_input_freq = True,
+                            amplify_freq = (None, None),
+                            amplify_weight = 10,
                             ):
     """
     Get style model and style loss layers, specialized for separating high and low frequency parts 
@@ -412,11 +409,9 @@ def get_models_SepFreq(   style_img,
         style_layers: list of style layer names, such as ['conv1_1', 'conv3_1']
         model_pooling: type of pooling layer in style model, can be 'avg' or 'max'
         silent: whether to print less to console, boolean
-        freq_high: at which frequency to separate high frequency parts
-        freq_low: at which frequency to separate low frequency parts
-        mean_weight: loss weight for BN mean
-        std_high_freq_weight: loss weight for high frequency part to BN std
-        std_low_freq_weight: loss weight for low frequency part to BN std
+        sep_input_freq: whether to apply FFT filtering on input image std, boolean
+        amplify_freq: 2-tuple where the 1st component is frequency lower bound and 2nd is upper bound
+        amplify_weight: weight attachted to loss for BN std of specific frequency
     Returns:
         model_style: style model
         style_losses: list of style loss layers
@@ -433,14 +428,10 @@ def get_models_SepFreq(   style_img,
     # single element to list
     def element_to_list(element, length):
         return [element] * length if not isinstance(element, list) else element
+    sep_input_freq = element_to_list(sep_input_freq, len(style_layers))
+    amplify_freq = element_to_list(amplify_freq, len(style_layers))
+    amplify_weight = element_to_list(amplify_weight, len(style_layers))
     
-    freq_high = element_to_list(freq_high, len(style_layers))
-    freq_low = element_to_list(freq_low, len(style_layers))
-    mean_weight = element_to_list(mean_weight, len(style_layers))
-    std_high_freq_weight = element_to_list(std_high_freq_weight, len(style_layers))
-    std_low_freq_weight = element_to_list(std_low_freq_weight, len(style_layers))
-    sep_freq = element_to_list(sep_freq, len(style_layers))
-
     conv_i = 1
     relu_i = 1
     pool_i = 1    # pool_i is important since conv blocks are separated by pooling layers
@@ -478,18 +469,18 @@ def get_models_SepFreq(   style_img,
         if name in style_layers:
             target_style = model_style(style_img).detach()
             idx = style_layers.index(name)
-            style_loss = StyleLossSepFreq(  target_style, sep_freq = sep_freq[idx], 
-                                            freq_high = freq_high[idx], freq_low = freq_low[idx], 
-                                            mean_weight = mean_weight[idx], 
-                                            std_high_freq_weight = std_high_freq_weight[idx], 
-                                            std_low_freq_weight = std_low_freq_weight[idx])
+            style_loss = StyleLossAmplifyFreq(  target_style, 
+                                                sep_input_freq = sep_input_freq[idx], 
+                                                amplify_freq = amplify_freq[idx], 
+                                                amplify_weight = amplify_weight[idx], 
+                                                )
             model_style.add_module("style_loss_{}_{}".format(pool_i, relu_i-1), style_loss)
             style_losses.append(style_loss)
 
 
     # trim off the layers after the last content and style losses
     for i in range(len(model_style) - 1, -1, -1):
-        if isinstance(model_style[i], StyleLossSepFreq): # or isinstance(model_content[i], ContentLoss):
+        if isinstance(model_style[i], StyleLossAmplifyFreq): # or isinstance(model_content[i], ContentLoss):
             break
         
     model_style   = model_style  [:(i + 1)]

@@ -270,14 +270,14 @@ class StyleLossOpsOnBNST(torch.nn.Module):
         
         return input
 
-class StyleLossSepFreq(torch.nn.Module):  
+class StyleLossAmplifyFreq(torch.nn.Module):  
     """
     A simplified style loss layer which only computes style loss based on batch normalization statistics, 
-    where the stds are separated into high frequency part and low frequency part.
+    where std of speicific frequency is amplified
     """
 
-    def __init__(self, target_style, sep_freq = True, freq_high = 1e-10, freq_low = 1e-10, mean_weight = 1, std_high_freq_weight = 1, std_low_freq_weight = 1):
-        super(StyleLossSepFreq, self).__init__()
+    def __init__(self, target_style, sep_input_freq = True, amplify_freq = (None, None), amplify_weight = 10):
+        super(StyleLossAmplifyFreq, self).__init__()
 
         # b: batch size, which should be 1
         # c: number of channels
@@ -293,20 +293,20 @@ class StyleLossSepFreq(torch.nn.Module):
 
         # FFT filter kernel
         freq = torch.abs(torch.fft.rfftfreq(c))
-        self.kernel_high = (freq >= freq_high).to(device).detach()
-        self.kernel_low  = (freq <= freq_low ).to(device).detach()
+        if amplify_freq[0] is None:
+            self.kernel = freq <= amplify_freq[1]
+        elif amplify_freq[1] is None:
+            self.kernel = freq >= amplify_freq[0]
+        else:
+            self.kernel = (freq <= amplify_freq[1]) * (freq >= amplify_freq[0])
+        self.kernel = self.kernel.to(device).detach()
         
         # apply 1D FFT filter to std
-        self.target_std_high_freq = fft_filter_1D(self.target_std, kernel = self.kernel_high).detach()
-        self.target_std_low_freq  = fft_filter_1D(self.target_std, kernel = self.kernel_low).detach()
+        self.target_std_filtered = fft_filter_1D(self.target_std, kernel = self.kernel).detach()
         
         # other parameters
-        self.freq_high = freq_high
-        self.freq_low = freq_low
-        self.std_high_freq_weight = std_high_freq_weight
-        self.std_low_freq_weight  = std_low_freq_weight
-        self.mean_weight = mean_weight
-        self.sep_freq = sep_freq
+        self.sep_input_freq = sep_input_freq
+        self.amplify_weight = amplify_weight if amplify_freq != (None,None) else 0
 
     ####################################### forward #######################################
     def forward(self, input):
@@ -317,21 +317,21 @@ class StyleLossSepFreq(torch.nn.Module):
         input_mean, input_std = BN_mean_and_std(input_feature)
         
         # FFT filter to input std
-        input_std_high_freq = fft_filter_1D(input_std, kernel = self.kernel_high)
-        input_std_low_freq  = fft_filter_1D(input_std, kernel = self.kernel_low)
-
-        # losses
-        mean_loss = torch.nn.functional.mse_loss(input_mean, self.target_mean)
-        if self.sep_freq:
-            std_high_freq_loss  = torch.nn.functional.mse_loss(input_std_high_freq, self.target_std_high_freq)
-            std_low_freq_loss   = torch.nn.functional.mse_loss(input_std_low_freq , self.target_std_low_freq)
-        else:
-            std_high_freq_loss = torch.nn.functional.mse_loss(input_std, self.target_std_high_freq)
-            std_low_freq_loss  = torch.nn.functional.mse_loss(input_std, self.target_std_low_freq)
+        input_std_filtered = fft_filter_1D(input_std, kernel = self.kernel)
         
+        # mean and std loss
+        mean_loss = torch.nn.functional.mse_loss(input_mean, self.target_mean)
+        std_loss = torch.nn.functional.mse_loss(input_std, self.target_std)
+
+        # loss on filtered std
+        if self.sep_input_freq:
+            std_filtered_loss  = torch.nn.functional.mse_loss(input_std_filtered, self.target_std_filtered)
+        else:
+            std_filtered_loss = torch.nn.functional.mse_loss(input_std, self.target_std_filtered)
+            
 
         self.losses = {}
-        self.losses['mean_loss'] = mean_loss * self.mean_weight
-        self.losses['std_loss'] = std_high_freq_loss * self.std_high_freq_weight + std_low_freq_loss  * self.std_low_freq_weight
+        self.losses['mean_loss'] = mean_loss
+        self.losses['std_loss'] = std_loss + std_filtered_loss * self.amplify_weight
         
         return input

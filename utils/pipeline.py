@@ -4,7 +4,7 @@ import numpy as np
 from tqdm.notebook import tqdm
 from utils.data_loader import tensor_loader
 from utils.plot import visualize_prediction
-from utils.model import get_models_2D_NST, get_models_3D_NST, get_models_OpsOnBNST, get_models_SepFreq
+from utils.model import get_models_2D_NST, get_models_3D_NST, get_models_OpsOnBNST, get_models_AmplifyFreq
 from utils.NoStdStreams import NoStdStreams
 from utils.mesh_preprocess import mesh_normalization
 from utils.renderer import get_renderer, get_lights, get_cameras, get_rgba_rendering, get_visual_camera
@@ -293,7 +293,7 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
     return input_img, loss_history, style_losses
 
 
-def pipeline_2D_NST_SepFreq(    style_img,
+def pipeline_2D_NST_AmplifyFreq(style_img,
                                 input_img, 
                                 n_iters = 200,
                                 style_weights = style_weights_default,
@@ -301,15 +301,12 @@ def pipeline_2D_NST_SepFreq(    style_img,
                                 learning_rate = 1,
                                 model_pooling = 'max',
                                 silent = True,
-                                sep_freq = True,
-                                freq_high = 1e-10,
-                                freq_low = 1e-10,
-                                mean_weight = 1,
-                                std_high_freq_weight = 1, 
-                                std_low_freq_weight = 1):
+                                sep_input_freq = True,
+                                amplify_freq = (None, None),
+                                amplify_weight = 10,
+                                ):
     """
-    Pipleline for running 2D neural style transfer with BNST loss, where the BN std is separated into high frequency and low
-    frequency parts.
+    Pipleline for running 2D neural style transfer with BNST loss, where loss based on BN std of specific frequency is amplified. 
     Arguments:
         style_img: style image tensor of shape (1,3,h,w)
         input_img: input image tensor, whose reshape depends on whether to consider content loss and types of style losses
@@ -319,12 +316,9 @@ def pipeline_2D_NST_SepFreq(    style_img,
         learning_rate: learning rate for LBFGS optimizer
         model_pooling: type of pooling layer in style/content model, can be 'max' or 'avg'
         silent: whether to print less to console, boolean
-        sep_freq: whether to separate BN std into high and low frequency parts, boolean
-        freq_high: at which frequency to separate high frequency parts
-        freq_low: at which frequency to separate low frequency parts
-        mean_weight: loss weight for BN mean
-        std_high_freq_weight: loss weight for high frequency part to BN std
-        std_low_freq_weight: loss weight for low frequency part to BN std
+        sep_input_freq: whether to apply FFT filtering on input image std, boolean
+        amplify_freq: 2-tuple where the 1st component is frequency lower bound and 2nd is upper bound
+        amplify_weight: weight attachted to loss for BN std of specific frequency
     Returns:
         input_img: tensor for stylized input image
         style_losses: list of style loss layers
@@ -337,17 +331,14 @@ def pipeline_2D_NST_SepFreq(    style_img,
 
 
     # get style and content models        
-    model_style, style_losses = get_models_SepFreq( style_img,
-                                                    style_layers = style_layers,
-                                                    model_pooling = model_pooling,
-                                                    silent = silent,
-                                                    sep_freq = sep_freq,
-                                                    freq_high = freq_high,
-                                                    freq_low = freq_low,
-                                                    mean_weight = mean_weight,
-                                                    std_high_freq_weight = std_high_freq_weight,
-                                                    std_low_freq_weight = std_low_freq_weight
-                                                    )
+    model_style, style_losses = get_models_AmplifyFreq( style_img,
+                                                        style_layers = style_layers,
+                                                        model_pooling = model_pooling,
+                                                        silent = silent,
+                                                        sep_input_freq = sep_input_freq,
+                                                        amplify_freq = amplify_freq,
+                                                        amplify_weight = amplify_weight,
+                                                        )
     
     # optimize only the input image and not the model parameters, so set all the requires_grad fields accordingly
     input_img.requires_grad_(True)
