@@ -193,6 +193,8 @@ def single_plot(mesh,
         faces_per_pixel: number of faces per pixel to track along depth axis
         sil_shader: whether to use silhouette renderer or soft phong renderer, boolean
         rgb: whether to plot RGB rendering or silhouette, boolean
+    Returns:
+        rgba rendering
     """
 
     # normalize mesh
@@ -212,3 +214,5 @@ def single_plot(mesh,
         plt.imshow(rendering_rgba[..., :3])
     else:
         plt.imshow(rendering_rgba[..., 3])
+
+    return rendering_rgba
