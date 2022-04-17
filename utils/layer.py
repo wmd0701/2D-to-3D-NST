@@ -214,8 +214,8 @@ class StyleLossOpsOnBNST(torch.nn.Module):
     """
 
     def __init__(self, target_style, indices = None,
-                mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
-                std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None):
+                mean_coef = 1, mean_bias = 0, std_coef = 1, std_bias = 0, 
+                mean_freq = [(None, None)], std_freq = [(None, None)]):
         super(StyleLossOpsOnBNST, self).__init__()
 
         # b: batch size, which should be 1
@@ -230,13 +230,19 @@ class StyleLossOpsOnBNST(torch.nn.Module):
         self.target_mean.detach_()
         self.target_std.detach_()
 
-        # apply 1D FFT filter
-        self.target_mean = fft_filter_1D(self.target_mean, freq_lower = mean_freq_lower, freq_upper = mean_freq_upper)
-        self.target_std = fft_filter_1D(self.target_std, freq_lower = std_freq_lower, freq_upper = std_freq_upper)
+        # apply 1D FFT filters for mean
+        self.target_mean_filtered = 0
+        for freq_lower, freq_upper in mean_freq:
+            self.target_mean_filtered += fft_filter_1D(self.target_mean, freq_lower = freq_lower, freq_upper = freq_upper)
         
+        # apply 1D FFT filters for std
+        self.target_std_filtered = 0
+        for freq_lower, freq_upper in std_freq:
+            self.target_std_filtered += fft_filter_1D(self.target_std, freq_lower = freq_lower, freq_upper = freq_upper)
+
         # affine transformation
-        self.target_mean = self.target_mean * mean_coef + mean_bias
-        self.target_std  = self.target_std  * std_coef  + std_bias
+        self.target_mean_filtered = self.target_mean_filtered * mean_coef + mean_bias # self.target_mean = self.target_mean * mean_coef + mean_bias
+        self.target_std_filtered  = self.target_std_filtered  * std_coef  + std_bias # self.target_std  = self.target_std  * std_coef  + std_bias
 
         # indices
         self.indices = indices
@@ -251,12 +257,12 @@ class StyleLossOpsOnBNST(torch.nn.Module):
         
         # consider statistics from all channels
         if self.indices is None:
-            mean_loss = torch.nn.functional.mse_loss(input_mean, self.target_mean)
-            std_loss  = torch.nn.functional.mse_loss(input_std, self.target_std)
+            mean_loss = torch.nn.functional.mse_loss(input_mean, self.target_mean_filtered) # mean_loss = torch.nn.functional.mse_loss(input_mean, self.target_mean)
+            std_loss  = torch.nn.functional.mse_loss(input_std, self.target_std_filtered) # std_loss  = torch.nn.functional.mse_loss(input_std, self.target_std)
         # consider statistics from a subset of channels
         else:
-            mean_loss = torch.nn.functional.mse_loss(input_mean[self.indices], self.target_mean[self.indices])
-            std_loss  = torch.nn.functional.mse_loss(input_std[self.indices], self.target_std[self.indices])
+            mean_loss = torch.nn.functional.mse_loss(input_mean[self.indices], self.target_mean_filtered[self.indices]) # mean_loss = torch.nn.functional.mse_loss(input_mean[self.indices], self.target_mean[self.indices])
+            std_loss  = torch.nn.functional.mse_loss(input_std[self.indices], self.target_std_filtered[self.indices]) # std_loss  = torch.nn.functional.mse_loss(input_std[self.indices], self.target_std[self.indices])
         
         self.losses = {}
         self.losses['mean_loss'] = mean_loss

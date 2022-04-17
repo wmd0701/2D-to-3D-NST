@@ -191,8 +191,9 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
                                 model_pooling = 'max',
                                 silent = True,
                                 indices = None,
-                                mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
-                                std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None):
+                                mean_coef = 1, mean_bias = 0, std_coef = 1, std_bias = 0, 
+                                mean_freq = [[(None, None)], [(None, None)], [(None, None)], [(None, None)]], 
+                                std_freq = [[(None, None)], [(None, None)], [(None, None)], [(None, None)]]):
     """
     Pipleline for running 2D neural style transfer with detailed operations on batch normalization statistics.
     Arguments:
@@ -206,8 +207,8 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
         silent: whether to print less to console, boolean
         indices: a subset of channels where BNST loss is computed
         *coef and *bias: params for affine transformation, e.g. x --> x * x_coef + x_bias
-        *freq_lower: FFT high pass filter threshold
-        *freq_upper: FFT low pass filter threshold
+        mean_freq: list of list of 2-tuple, where the 1st element in tuple is frequency lower bound, 2nd is frequency upper bound
+        std_freq: list of list of 2-tuple, where the 1st element in tuple is frequency lower bound, 2nd is frequency upper bound
     Returns:
         input_img: tensor for stylized input image
         loss_history: dictionary for loss history
@@ -226,8 +227,9 @@ def pipeline_2D_NST_OpsOnBNST(  style_img,
                                                         model_pooling = model_pooling,
                                                         silent = silent,
                                                         indices = indices,
-                                                        mean_coef = mean_coef, mean_bias = mean_bias, mean_freq_lower=mean_freq_lower, mean_freq_upper=mean_freq_upper,
-                                                        std_coef = std_coef, std_bias = std_bias, std_freq_lower=std_freq_lower, std_freq_upper=std_freq_upper
+                                                        mean_coef = mean_coef, mean_bias = mean_bias,
+                                                        std_coef = std_coef, std_bias = std_bias, 
+                                                        mean_freq=mean_freq, std_freq=std_freq
                                                         )
     
     # optimize only the input image and not the model parameters, so set all the requires_grad fields accordingly

@@ -185,8 +185,10 @@ def get_models_OpsOnBNST(   style_img,
                             model_pooling = 'max',
                             silent = True,
                             indices = None,
-                            mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
-                            std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None
+                            mean_coef = 1, mean_bias = 0,
+                            std_coef = 1, std_bias = 0, 
+                            mean_freq = [[(None, None)], [(None, None)], [(None, None)], [(None, None)]], 
+                            std_freq = [[(None, None)], [(None, None)], [(None, None)], [(None, None)]]
                             ):
     """
     Get style model and style loss layers, specialized for per-layer operations on batch normalization
@@ -199,8 +201,8 @@ def get_models_OpsOnBNST(   style_img,
         silent: whether to print less to console, boolean
         indices: a subset of channels where BNST loss is computed
         *coef and *bias: params for affine transformation, e.g. x --> x * x_coef + x_bias
-        *freq_lower: FFT high pass filter threshold
-        *freq_upper: FFT low pass filter threshold
+        mean_freq: list of list of 2-tuple, where the 1st element in tuple is frequency lower bound, 2nd is frequency upper bound
+        std_freq: list of list of 2-tuple, where the 1st element in tuple is frequency lower bound, 2nd is frequency upper bound
     Returns:
         model_style: style model
         style_losses: list of style loss layers
@@ -220,12 +222,8 @@ def get_models_OpsOnBNST(   style_img,
     indices = element_to_list(indices, len(style_layers))
     mean_coef = element_to_list(mean_coef, len(style_layers))
     mean_bias = element_to_list(mean_bias, len(style_layers))
-    mean_freq_lower = element_to_list(mean_freq_lower, len(style_layers))
-    mean_freq_upper = element_to_list(mean_freq_upper, len(style_layers))
     std_coef = element_to_list(std_coef, len(style_layers))
     std_bias = element_to_list(std_bias, len(style_layers))
-    std_freq_lower = element_to_list(std_freq_lower, len(style_layers))
-    std_freq_upper = element_to_list(std_freq_upper, len(style_layers))
     
     conv_i = 1
     relu_i = 1
@@ -265,8 +263,8 @@ def get_models_OpsOnBNST(   style_img,
             target_style = model_style(style_img).detach()
             idx = style_layers.index(name)
             style_loss = StyleLossOpsOnBNST( target_style, indices=indices[idx], 
-                                    mean_coef=mean_coef[idx], mean_bias=mean_bias[idx], mean_freq_lower=mean_freq_lower[idx], mean_freq_upper=mean_freq_upper[idx],
-                                    std_coef=std_coef[idx], std_bias=std_bias[idx], std_freq_lower=std_freq_lower[idx], std_freq_upper=std_freq_upper[idx])
+                                    mean_coef=mean_coef[idx], mean_bias=mean_bias[idx], std_coef=std_coef[idx], std_bias=std_bias[idx], 
+                                    mean_freq=mean_freq[idx], std_freq_upper=std_freq[idx])
             model_style.add_module("style_loss_{}_{}".format(pool_i, relu_i-1), style_loss)
             style_losses.append(style_loss)
 
