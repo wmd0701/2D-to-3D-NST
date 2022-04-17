@@ -302,7 +302,8 @@ def pipeline_2D_NST_SepFreq(    style_img,
                                 model_pooling = 'max',
                                 silent = True,
                                 sep_freq = True,
-                                freq_threshold = 1e-10,
+                                freq_high = 1e-10,
+                                freq_low = 1e-10,
                                 mean_weight = 1,
                                 std_high_freq_weight = 1, 
                                 std_low_freq_weight = 1):
@@ -319,7 +320,8 @@ def pipeline_2D_NST_SepFreq(    style_img,
         model_pooling: type of pooling layer in style/content model, can be 'max' or 'avg'
         silent: whether to print less to console, boolean
         sep_freq: whether to separate BN std into high and low frequency parts, boolean
-        freq_threshold: at which frequency to separate high and low frequency parts
+        freq_high: at which frequency to separate high frequency parts
+        freq_low: at which frequency to separate low frequency parts
         mean_weight: loss weight for BN mean
         std_high_freq_weight: loss weight for high frequency part to BN std
         std_low_freq_weight: loss weight for low frequency part to BN std
@@ -340,7 +342,8 @@ def pipeline_2D_NST_SepFreq(    style_img,
                                                     model_pooling = model_pooling,
                                                     silent = silent,
                                                     sep_freq = sep_freq,
-                                                    freq_threshold = freq_threshold,
+                                                    freq_high = freq_high,
+                                                    freq_low = freq_low,
                                                     mean_weight = mean_weight,
                                                     std_high_freq_weight = std_high_freq_weight,
                                                     std_low_freq_weight = std_low_freq_weight

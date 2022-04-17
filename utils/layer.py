@@ -276,7 +276,7 @@ class StyleLossSepFreq(torch.nn.Module):
     where the stds are separated into high frequency part and low frequency part.
     """
 
-    def __init__(self, target_style, sep_freq = True, freq_threshold = 1e-10, mean_weight = 1, std_high_freq_weight = 1, std_low_freq_weight = 1):
+    def __init__(self, target_style, sep_freq = True, freq_high = 1e-10, freq_low = 1e-10, mean_weight = 1, std_high_freq_weight = 1, std_low_freq_weight = 1):
         super(StyleLossSepFreq, self).__init__()
 
         # b: batch size, which should be 1
@@ -293,15 +293,16 @@ class StyleLossSepFreq(torch.nn.Module):
 
         # FFT filter kernel
         freq = torch.abs(torch.fft.rfftfreq(c))
-        self.kernel_high = (freq >= freq_threshold).to(device).detach()
-        self.kernel_low  = (freq < freq_threshold).to(device).detach()
+        self.kernel_high = (freq >= freq_high).to(device).detach()
+        self.kernel_low  = (freq <= freq_low ).to(device).detach()
         
         # apply 1D FFT filter to std
         self.target_std_high_freq = fft_filter_1D(self.target_std, kernel = self.kernel_high).detach()
         self.target_std_low_freq  = fft_filter_1D(self.target_std, kernel = self.kernel_low).detach()
         
         # other parameters
-        self.freq_threshold = freq_threshold
+        self.freq_high = freq_high
+        self.freq_low = freq_low
         self.std_high_freq_weight = std_high_freq_weight
         self.std_low_freq_weight  = std_low_freq_weight
         self.mean_weight = mean_weight
