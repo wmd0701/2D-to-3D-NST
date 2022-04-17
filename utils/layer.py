@@ -293,7 +293,9 @@ class StyleLossAmplifyFreq(torch.nn.Module):
 
         # FFT filter kernel
         freq = torch.abs(torch.fft.rfftfreq(c))
-        if amplify_freq[0] is None:
+        if amplify_freq[0] is None and amplify_freq[1] is None:
+            self.kernel = freq <= 0 # fake value
+        elif amplify_freq[0] is None:
             self.kernel = freq <= amplify_freq[1]
         elif amplify_freq[1] is None:
             self.kernel = freq >= amplify_freq[0]
