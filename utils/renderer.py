@@ -22,7 +22,7 @@ from utils.mesh_preprocess import mesh_normalization
 # GPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def get_renderer(rendering_size = 512, faces_per_pixel = 50, sil_shader = False):
+def get_renderer(rendering_size = 256, faces_per_pixel = 50, sil_shader = False):
     """
     Get a differentiable renderer from PyTorch3D.
     Arguments:
@@ -133,7 +133,7 @@ def grid_plot(mesh,
               azims = torch.tensor([-180, -90, 0, 90, 0, 0]), 
               n_rows = 2, 
               n_cols = 3, 
-              rendering_size = 512, 
+              rendering_size = 256, 
               faces_per_pixel = 50,
               sil_shader = True,
               rgb = False):
@@ -177,7 +177,7 @@ def single_plot(mesh,
                 camera_dist = 2.7,
                 elev = 0, 
                 azim = 0,
-                rendering_size = 512, 
+                rendering_size = 256, 
                 faces_per_pixel = 50,
                 sil_shader = True,
                 rgb = False):
