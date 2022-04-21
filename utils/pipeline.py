@@ -419,7 +419,7 @@ def pipeline_3D_NST(org_mesh,
                     clamping = False,
                     reshaping_rgb = False,
                     reshaping_rgb_to_grayscale = False,
-                    texturing_noise_init = False,
+                    texturing_noise_init = True,
                     rgb_plot = True,
                     sil_plot = True):
     """
@@ -522,7 +522,7 @@ def pipeline_3D_NST(org_mesh,
     loss_history = {name: {'weight':weight, 'values':[]} for name, weight in style_loss_types.items()}
         
     # return value, which keeps renderings at specified iterations
-    rendering_at_iter = {}
+    rendering_at_iter = {'rendering_iter0': org_rendering_rgba}
     
     # optimization loop
     loop = tqdm(range(1, n_iterations + 1))
@@ -598,7 +598,7 @@ def pipeline_3D_NST(org_mesh,
             save_obj(final_obj, final_verts, final_faces)
 
             # add rendering to dictionary
-            rendering_at_iter["rendering_iter" + str(i)] = new_rendering_rgba[..., 3] if optim_type == 'reshaping' else new_rendering_rgba[..., :3]
+            rendering_at_iter["rendering_iter" + str(i)] = new_rendering_rgba # new_rendering_rgba[..., 3] if optim_type == 'reshaping' else new_rendering_rgba[..., :3]
 
     return what_to_optimize, cameras, loss_history, rendering_at_iter
 
@@ -624,7 +624,7 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
                                     model_pooling = 'max',
                                     mask_pooling = 'avg',
                                     clamping = False,
-                                    texturing_noise_init = False):
+                                    texturing_noise_init = True):
     """
     Pipeline for running 3D neural style transfer, reshaping and texturing simultaneously.
     Arguments:
@@ -697,7 +697,7 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
     loss_history_texturing = {name: {'weight':weight, 'values':[]} for name, weight in style_loss_types.items()}
         
     # return value, which keeps renderings at specified iterations
-    rendering_at_iter = {}
+    rendering_at_iter = {'rendering_iter0': org_rendering_rgba}
     
     # optimization loop
     loop = tqdm(range(1, n_iterations + 1))
@@ -818,7 +818,7 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
                     plot_period = [10, 50, 100, 200, 500],
                     model_pooling = 'max',
                     clamping = False,
-                    texturing_noise_init = False,
+                    texturing_noise_init = True,
                     rgb_plot = True,
                     sil_plot = True,
                     indices = None,
@@ -924,7 +924,7 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
     loss_history = {name: {'weight':1.0, 'values':[]} for name in ['mean_loss', 'std_loss']}
         
     # return value, which keeps renderings at specified iterations
-    rendering_at_iter = {}
+    rendering_at_iter = {'rendering_iter0': org_rendering_rgba}
     
     # optimization loop
     loop = tqdm(range(1, n_iterations + 1))
@@ -997,6 +997,6 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
             save_obj(final_obj, final_verts, final_faces)
 
             # add rendering to dictionary
-            rendering_at_iter["rendering_iter" + str(i)] = new_rendering_rgba[..., 3] if optim_type == 'reshaping' else new_rendering_rgba[..., :3]
+            rendering_at_iter["rendering_iter" + str(i)] = new_rendering_rgba # new_rendering_rgba[..., 3] if optim_type == 'reshaping' else new_rendering_rgba[..., :3]
 
     return what_to_optimize, cameras, loss_history, rendering_at_iter
