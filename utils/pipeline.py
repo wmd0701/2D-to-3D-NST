@@ -500,7 +500,7 @@ def pipeline_3D_NST(org_mesh,
     
     # get renderer, cameras and lights
     rendering_size = style_img.shape[-2:] if 'morest' in style_loss_types else rendering_size # 'morest' loss requires style image and rendering of same size
-    renderer = get_renderer(rendering_size = rendering_size, faces_per_pixel = faces_per_pixel, sil_shader = (optim_type == 'reshaping' and not reshaping_rgb))
+    renderer = get_renderer(rendering_size = rendering_size, faces_per_pixel = faces_per_pixel, sil_shader = False) #sil_shader = (optim_type == 'reshaping' and not reshaping_rgb))
     lights = get_lights()
     if cameras is None: # cameras for reshaping should be re-used for texturing
         print("no cameras are given, and sampling_cameras is", sampling_cameras)
