@@ -398,7 +398,7 @@ def pipeline_3D_NST(org_mesh,
                     style_img,
                     optim_type = 'reshaping',
                     optim_init = None,
-                    rendering_size = (512,512),
+                    rendering_size = (256,256),
                     style_layers = style_layers_default,
                     style_weights = style_weights_default,
                     n_views_per_iter = 1,
@@ -418,7 +418,10 @@ def pipeline_3D_NST(org_mesh,
                     mask_pooling = 'avg',
                     clamping = False,
                     reshaping_rgb = False,
-                    rgb_to_grayscale = False):
+                    reshaping_rgb_to_grayscale = False,
+                    texturing_noise_init = False,
+                    rgb_plot = True,
+                    sil_plot = True):
     """
     Pipeline for running 3D neural style transfer, either reshaping or texturing.
     Arguments:
@@ -446,7 +449,10 @@ def pipeline_3D_NST(org_mesh,
         mask_pooling: type of pooling layer in mask model, can be 'max' or 'avg'
         clamping: whether to clamp per-vertex color in range [0,1] in case of texturing
         reshaping_rgb: whether to conduct reshaping with colorful renderings instead of silhouettes, boolean 
-        rgb_to_grayscale: whether to convert rgb tensor into grayscale and then to duplicate over channels, boolean
+        reshaping_rgb_to_grayscale: whether to convert rgb tensor into grayscale and then to duplicate over channels, boolean
+        texturing_noise_init: whether intial per-vertex color is random noise or not, boolean
+        rgb_plot: whether to plot colorful rendering, boolean
+        sil_plot: whether to plot silhouette rendering, boolean
     Returns:
         what_to_optimize: per-vertex position offset or per-vertex color depending on task type
         cameras: generated camera, may be reused in case of sequential reshaping and texturing
@@ -469,10 +475,14 @@ def pipeline_3D_NST(org_mesh,
             what_to_optimize /= 1e2 # offsets should be smaller
             what_to_optimize = what_to_optimize.detach()
             what_to_optimize.requires_grad = True
+        fake_texture = torch.full([1, verts_shape[0], 3], 0.5, device=device)
+        org_mesh.textures = TexturesVertex(verts_features = fake_texture)
     elif optim_type == 'texturing':
         if optim_init is None:
-            # what_to_optimize = torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
-            what_to_optimize = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
+            if texturing_noise_init:
+                what_to_optimize = torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
+            else:
+                what_to_optimize = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
             
         else:
             what_to_optimize = optim_init.view(1, verts_shape[0], 3).detach() # make leaf tensor
@@ -537,7 +547,7 @@ def pipeline_3D_NST(org_mesh,
             # get data tensors
             rendering_rgba = get_rgba_rendering(new_mesh, renderer, cameras[j], lights) 
             rendering = rendering_rgba[..., 3] if optim_type == 'reshaping' and not reshaping_rgb else rendering_rgba[..., :3]
-            rendering_tensor = tensor_loader(rendering, rgb_to_grayscale = rgb_to_grayscale)
+            rendering_tensor = tensor_loader(rendering, rgb_to_grayscale = reshaping_rgb_to_grayscale)
             mask_tensor = tensor_loader(rendering_rgba[...,3], mask = True)
             
             # forward pass
@@ -577,8 +587,8 @@ def pipeline_3D_NST(org_mesh,
         if i in plot_period:
             with torch.no_grad():
                 new_rendering_rgba = get_rgba_rendering(new_mesh, renderer, camera_visual, lights).detach().cpu()
-            rgb = optim_type == 'texturing' or reshaping_rgb
-            sil = optim_type == 'reshaping' or (optim_init is not None)
+            rgb = rgb_plot # optim_type == 'texturing' or reshaping_rgb
+            sil = sil_plot # optim_type == 'reshaping' or (optim_init is not None)
             visualize_prediction(new_rendering_rgba = new_rendering_rgba, org_rendering_rgba = org_rendering_rgba, rgb = rgb, sil = sil, title="iter: %d" % i)
                  
             # save mesh
@@ -594,7 +604,7 @@ def pipeline_3D_NST(org_mesh,
 
 def pipeline_3D_NST_simultaneous(   org_mesh,
                                     style_img,
-                                    rendering_size = (512,512),
+                                    rendering_size = (256,256),
                                     style_layers = style_layers_default,
                                     style_weights = style_weights_default,
                                     n_views_per_iter = 1,
@@ -613,7 +623,8 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
                                     masking = False,
                                     model_pooling = 'max',
                                     mask_pooling = 'avg',
-                                    clamping = False):
+                                    clamping = False,
+                                    texturing_noise_init = False):
     """
     Pipeline for running 3D neural style transfer, reshaping and texturing simultaneously.
     Arguments:
@@ -639,6 +650,7 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
         model_pooling: type of pooling layer in style model, can be 'max' or 'avg'
         mask_pooling: type of pooling layer in mask model, can be 'max' or 'avg'
         clamping: whether to clamp per-vertex color in range [0,1] in case of texturing
+        texturing_noise_init: whether intial per-vertex color is random noise or not, boolean
     Returns:
         verts_offsets: per-vertex position offset
         verts_colors: per-vertex color
@@ -653,7 +665,7 @@ def pipeline_3D_NST_simultaneous(   org_mesh,
     # optimizer and the tensor to be optimized
     verts_shape = org_mesh.verts_packed().shape
     verts_offsets = torch.full(verts_shape, 0.0, device=device, requires_grad=True)
-    verts_colors  = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
+    verts_colors  = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True) if not texturing_noise_init else torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
     optimizer_reshaping = torch.optim.Adam([verts_offsets], lr=reshaping_lr)
     optimizer_texturing = torch.optim.Adam([verts_colors ], lr=texturing_lr)
 
@@ -790,7 +802,7 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
                     style_img,
                     optim_type = 'reshaping',
                     optim_init = None,
-                    rendering_size = (512,512),
+                    rendering_size = (256,256),
                     style_layers = style_layers_default,
                     style_weights = style_weights_default,
                     n_views_per_iter = 1,
@@ -806,6 +818,9 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
                     plot_period = [10, 50, 100, 200, 500],
                     model_pooling = 'max',
                     clamping = False,
+                    texturing_noise_init = False,
+                    rgb_plot = True,
+                    sil_plot = True,
                     indices = None,
                     mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
                     std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None):
@@ -834,6 +849,9 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
         plot_period: at which iteration to plot rendering and save mesh object
         model_pooling: type of pooling layer in style model, can be 'max' or 'avg'
         clamping: whether to clamp per-vertex color in range [0,1] in case of texturing
+        texturing_noise_init: whether intial per-vertex color is random noise or not, boolean
+        rgb_plot: whether to plot colorful rendering, boolean
+        sil_plot: whether to plot silhouette rendering, boolean
         indices: subset of channels to consider w.r.t. BNST loss
         *coef and *bias: params for affine transformation, e.g. x --> x * x_coef + x_bias
     Returns:
@@ -858,10 +876,14 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
             what_to_optimize /= 1e2 # offsets should be smaller
             what_to_optimize = what_to_optimize.detach()
             what_to_optimize.requires_grad = True
+        fake_texture = torch.full([1, verts_shape[0], 3], 0.5, device=device)
+        org_mesh.textures = TexturesVertex(verts_features = fake_texture)
     elif optim_type == 'texturing':
         if optim_init is None:
-            # what_to_optimize = torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
-            what_to_optimize = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
+            if texturing_noise_init:
+                what_to_optimize = torch.rand(1, verts_shape[0], 3, device=device, requires_grad=True)
+            else:
+                what_to_optimize = torch.full([1, verts_shape[0], 3], 0.5, device=device, requires_grad=True)
             
         else:
             what_to_optimize = optim_init.view(1, verts_shape[0], 3).detach()  # make leaf tensor
@@ -964,8 +986,8 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
         if i in plot_period:
             with torch.no_grad():
                 new_rendering_rgba = get_rgba_rendering(new_mesh, renderer, camera_visual, lights).detach().cpu()
-            rgb = optim_type == 'texturing'
-            sil = optim_type == 'reshaping' or (optim_init is not None)
+            rgb = rgb_plot # optim_type == 'texturing'
+            sil = sil_plot # optim_type == 'reshaping' or (optim_init is not None)
             visualize_prediction(new_rendering_rgba = new_rendering_rgba, org_rendering_rgba = org_rendering_rgba, rgb = rgb, sil = sil, title="iter: %d" % i)
                  
             # save mesh

@@ -272,7 +272,7 @@ def visualize_prediction(new_rendering_rgba, org_rendering_rgba, rgb = False, si
         plt.axis("off")
         plt.subplot(1, 4, 3)
         plt.imshow(org_rendering_rgba[..., :3])
-        plt.axis("off")
+        plt.title("init")
         plt.subplot(1, 4, 4)
         plt.imshow(org_rendering_rgba[..., 3])
         plt.axis("off")
@@ -284,6 +284,7 @@ def visualize_prediction(new_rendering_rgba, org_rendering_rgba, rgb = False, si
         plt.subplot(1, 2, 2)
         plt.imshow(org_rendering_rgba[..., :3])
         plt.axis("off")
+        plt.title("init")
     elif sil:
         plt.figure(figsize=(10, 5))
         plt.subplot(1, 2, 1)
@@ -292,5 +293,6 @@ def visualize_prediction(new_rendering_rgba, org_rendering_rgba, rgb = False, si
         plt.subplot(1, 2, 2)
         plt.imshow(org_rendering_rgba[..., 3])
         plt.axis("off")
+        plt.title("init")
     else:
         raise RuntimeError("rbg and sil cannot both be False!")
