@@ -420,8 +420,8 @@ def pipeline_3D_NST(org_mesh,
                     reshaping_rgb = False,
                     reshaping_rgb_to_grayscale = False,
                     texturing_noise_init = True,
-                    rgb_plot = True,
-                    sil_plot = True):
+                    rgb_plot = None,
+                    sil_plot = None):
     """
     Pipeline for running 3D neural style transfer, either reshaping or texturing.
     Arguments:
@@ -475,8 +475,8 @@ def pipeline_3D_NST(org_mesh,
             what_to_optimize /= 1e2 # offsets should be smaller
             what_to_optimize = what_to_optimize.detach()
             what_to_optimize.requires_grad = True
-        fake_texture = torch.full([1, verts_shape[0], 3], 0.5, device=device)
-        org_mesh.textures = TexturesVertex(verts_features = fake_texture)
+        # fake_texture = torch.full([1, verts_shape[0], 3], 0.5, device=device)
+        # org_mesh.textures = TexturesVertex(verts_features = fake_texture)
     elif optim_type == 'texturing':
         if optim_init is None:
             if texturing_noise_init:
@@ -500,7 +500,7 @@ def pipeline_3D_NST(org_mesh,
     
     # get renderer, cameras and lights
     rendering_size = style_img.shape[-2:] if 'morest' in style_loss_types else rendering_size # 'morest' loss requires style image and rendering of same size
-    renderer = get_renderer(rendering_size = rendering_size, faces_per_pixel = faces_per_pixel, sil_shader = False) #sil_shader = (optim_type == 'reshaping' and not reshaping_rgb))
+    renderer = get_renderer(rendering_size = rendering_size, faces_per_pixel = faces_per_pixel, sil_shader = (optim_type == 'reshaping' and not reshaping_rgb))
     lights = get_lights()
     if cameras is None: # cameras for reshaping should be re-used for texturing
         print("no cameras are given, and sampling_cameras is", sampling_cameras)
@@ -587,8 +587,8 @@ def pipeline_3D_NST(org_mesh,
         if i in plot_period:
             with torch.no_grad():
                 new_rendering_rgba = get_rgba_rendering(new_mesh, renderer, camera_visual, lights).detach().cpu()
-            rgb = rgb_plot # optim_type == 'texturing' or reshaping_rgb
-            sil = sil_plot # optim_type == 'reshaping' or (optim_init is not None)
+            rgb = rgb_plot if rgb_plot is not None else optim_type == 'texturing' or reshaping_rgb
+            sil = sil_plot if sil_plot is not None else optim_type == 'reshaping' or (optim_init is not None)
             visualize_prediction(new_rendering_rgba = new_rendering_rgba, org_rendering_rgba = org_rendering_rgba, rgb = rgb, sil = sil, title="iter: %d" % i)
                  
             # save mesh
@@ -819,8 +819,8 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
                     model_pooling = 'max',
                     clamping = False,
                     texturing_noise_init = True,
-                    rgb_plot = True,
-                    sil_plot = True,
+                    rgb_plot = None,
+                    sil_plot = None,
                     indices = None,
                     mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
                     std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None):
@@ -876,8 +876,8 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
             what_to_optimize /= 1e2 # offsets should be smaller
             what_to_optimize = what_to_optimize.detach()
             what_to_optimize.requires_grad = True
-        fake_texture = torch.full([1, verts_shape[0], 3], 0.5, device=device)
-        org_mesh.textures = TexturesVertex(verts_features = fake_texture)
+        # fake_texture = torch.full([1, verts_shape[0], 3], 0.5, device=device)
+        # org_mesh.textures = TexturesVertex(verts_features = fake_texture)
     elif optim_type == 'texturing':
         if optim_init is None:
             if texturing_noise_init:
@@ -986,8 +986,8 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
         if i in plot_period:
             with torch.no_grad():
                 new_rendering_rgba = get_rgba_rendering(new_mesh, renderer, camera_visual, lights).detach().cpu()
-            rgb = rgb_plot # optim_type == 'texturing'
-            sil = sil_plot # optim_type == 'reshaping' or (optim_init is not None)
+            rgb = rgb_plot if rgb_plot is not None else optim_type == 'texturing'
+            sil = sil_plot if sil_plot is not None else optim_type == 'reshaping' or (optim_init is not None)
             visualize_prediction(new_rendering_rgba = new_rendering_rgba, org_rendering_rgba = org_rendering_rgba, rgb = rgb, sil = sil, title="iter: %d" % i)
                  
             # save mesh
