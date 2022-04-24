@@ -139,6 +139,7 @@ def plot_gram_matrix(grams, config_idx = None, global_normalizing = False, title
             suptitle = "config" + str(k) if title is None else title
             plt.suptitle(suptitle)
     else:
+        i = 1
         plt.figure(figsize=(4 * n_cols, 4))
         for k2, l2 in grams[config_idx].items():
                 plt.subplot(1, n_cols, i)
