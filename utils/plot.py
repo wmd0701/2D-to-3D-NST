@@ -104,12 +104,14 @@ def plot_statistics_difference(statistics, config_idx1=0, config_idx2=1, style_l
     if save_plot:
         plt.savefig("statistics_difference_plot.png")
 
-def plot_gram_matrix(grams, global_normalizing = False):
+def plot_gram_matrix(grams, config_idx = None, global_normalizing = False, title = None):
     """
     Plot gram matrix as grayscale image.
     Arguments:
         grams: dictionary of gram matrices
+        config_idx: index of configuration to plot
         global_normalizing: whether gram matrices of different configs are normalized in same way, boolean
+        title: super title of plot
     Returns:
         no return
     """
@@ -123,16 +125,28 @@ def plot_gram_matrix(grams, global_normalizing = False):
         for k2, l2 in l.items():
             maxs[k2] = max(maxs[k2], l2.max())
     
-    for k, l in grams.items():
-        plt.figure(figsize=(4 * n_cols, 4))    
-        
-        i = 1
-        for k2, l2 in l.items():
-            plt.subplot(1, n_cols, i)
-            plt.imshow(l2 if not global_normalizing else l2/maxs[k2])
-            plt.title(k2 + ", mean={:.2f}, max={:.2f}".format(l2.mean(), l2.max()))
-            i += 1
-        plt.suptitle("config" + str(k))
+    # plot gram matrices for all configs
+    if config_idx is None:
+        for k, l in grams.items():
+            plt.figure(figsize=(4 * n_cols, 4))    
+            
+            i = 1
+            for k2, l2 in l.items():
+                plt.subplot(1, n_cols, i)
+                plt.imshow(l2 if not global_normalizing else l2/maxs[k2])
+                plt.title(k2 + ", mean={:.2f}, max={:.2f}".format(l2.mean(), l2.max()))
+                i += 1
+            suptitle = "config" + str(k) if title is None else title
+            plt.suptitle(suptitle)
+    else:
+        plt.figure(figsize=(4 * n_cols, 4))
+        for k2, l2 in grams[config_idx].items():
+                plt.subplot(1, n_cols, i)
+                plt.imshow(l2 if not global_normalizing else l2/maxs[k2])
+                plt.title(k2 + ", mean={:.2f}, max={:.2f}".format(l2.mean(), l2.max()))
+                i += 1
+        suptitle = "config" + str(config_idx) if title is None else title
+        plt.suptitle(suptitle)
 
 def flexible_plot(data_list, config_idx = None, save_plot=False, x_title = 'channel', y_title = 'std', title='no title'):
     """
