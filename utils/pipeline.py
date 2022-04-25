@@ -822,8 +822,11 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
                     rgb_plot = None,
                     sil_plot = None,
                     indices = None,
-                    mean_coef = 1, mean_bias = 0, mean_freq_lower = None, mean_freq_upper = None,
-                    std_coef = 1, std_bias = 0, std_freq_lower = None, std_freq_upper = None):
+                    mean_coef = 1, mean_bias = 0,
+                    std_coef = 1, std_bias = 0,
+                    mean_freq = [[(None, None)], [(None, None)], [(None, None)], [(None, None)]], 
+                    std_freq = [[(None, None)], [(None, None)], [(None, None)], [(None, None)]]
+                    ):
     """
     Pipeline for running 3D neural style transfer, either reshaping or texturing. This function allows per-layer 
     operations on batch normalization statistics such as affine transformation or FFT filter. Compared to 
@@ -854,6 +857,8 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
         sil_plot: whether to plot silhouette rendering, boolean
         indices: subset of channels to consider w.r.t. BNST loss
         *coef and *bias: params for affine transformation, e.g. x --> x * x_coef + x_bias
+        mean_freq: list of list of 2-tuple, where the 1st element in tuple is frequency lower bound, 2nd is frequency upper bound
+        std_freq: list of list of 2-tuple, where the 1st element in tuple is frequency lower bound, 2nd is frequency upper bound
     Returns:
         what_to_optimize: per-vertex position offset or per-vertex color depending on task type
         cameras: generated camera, may be reused in case of sequential reshaping and texturing
@@ -916,8 +921,10 @@ def pipeline_3D_NST_OpsOnBNST(org_mesh,
                                                         model_pooling = model_pooling,
                                                         silent =True,
                                                         indices = indices,
-                                                        mean_coef = mean_coef, mean_bias = mean_bias, mean_freq_lower=mean_freq_lower, mean_freq_upper=mean_freq_upper,
-                                                        std_coef = std_coef, std_bias = std_bias, std_freq_lower=std_freq_lower, std_freq_upper=std_freq_upper
+                                                        mean_coef = mean_coef, mean_bias = mean_bias,
+                                                        std_coef = std_coef, std_bias = std_bias,
+                                                        mean_freq = mean_freq,
+                                                        std_freq = std_freq
                                                         )
     
     # loss history
